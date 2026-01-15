@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiSave, FiUpload, FiUser, FiMail, FiPhone, FiMapPin, FiGithub, FiLinkedin, FiTwitter, FiGlobe, FiCode, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { SiLeetcode, SiCodeforces, SiCodechef, SiHackerrank } from 'react-icons/si';
-import { settingsAPI, authAPI } from '../../services/api';
+import { settingsAPI, authAPI, getImageUrl, BACKEND_URL } from '../../services/api';
 import Loading from '../../components/common/Loading';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const Settings = () => {
     const [loading, setLoading] = useState(true);
@@ -174,10 +172,10 @@ const Settings = () => {
         }
     };
 
-    const getImageUrl = () => {
+    const getProfileImageUrl = () => {
         if (previewImage) return previewImage;
         if (profileImage) {
-            return profileImage.startsWith('http') ? profileImage : `${API_URL}${profileImage}`;
+            return profileImage.startsWith('http') ? profileImage : `${BACKEND_URL}${profileImage}`;
         }
         return null;
     };
@@ -200,9 +198,9 @@ const Settings = () => {
                     <div className="flex items-center gap-8">
                         <div className="relative">
                             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary-500/50 bg-dark-300">
-                                {getImageUrl() ? (
+                                {getProfileImageUrl() ? (
                                     <img
-                                        src={getImageUrl()}
+                                        src={getProfileImageUrl()}
                                         alt="Profile"
                                         className="w-full h-full object-cover"
                                     />

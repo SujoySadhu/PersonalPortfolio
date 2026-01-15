@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiSave, FiArrowLeft, FiImage, FiX, FiPlus } from 'react-icons/fi';
-import { blogsAPI, categoriesAPI } from '../../services/api';
+import { blogsAPI, categoriesAPI, getImageUrl, BACKEND_URL } from '../../services/api';
 import Spinner from '../../components/common/Spinner';
 import toast from 'react-hot-toast';
 
@@ -30,8 +30,6 @@ const BlogForm = () => {
         metaDescription: '',
         coverImage: null
     });
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     useEffect(() => {
         fetchCategories();
@@ -69,7 +67,7 @@ const BlogForm = () => {
                 coverImage: null
             });
             if (blog.coverImage) {
-                setImagePreview(`${API_URL}${blog.coverImage}`);
+                setImagePreview(getImageUrl(blog.coverImage));
             }
         } catch (error) {
             console.error('Error fetching blog:', error);

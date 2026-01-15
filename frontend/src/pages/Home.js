@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiArrowRight, FiGithub, FiLinkedin, FiTwitter, FiDownload, FiCode, FiMail, FiMapPin } from 'react-icons/fi';
 import { SiLeetcode, SiCodeforces, SiCodechef, SiHackerrank } from 'react-icons/si';
-import { projectsAPI, skillsAPI, settingsAPI } from '../services/api';
+import { projectsAPI, skillsAPI, settingsAPI, getImageUrl } from '../services/api';
 import ProjectCard from '../components/projects/ProjectCard';
 import SkillCard from '../components/skills/SkillCard';
 import Loading from '../components/common/Loading';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const Home = () => {
     const [featuredProjects, setFeaturedProjects] = useState([]);
@@ -37,10 +35,7 @@ const Home = () => {
     };
 
     const getProfileImageUrl = () => {
-        if (!settings?.profileImage) return null;
-        return settings.profileImage.startsWith('http') 
-            ? settings.profileImage 
-            : `${API_URL}${settings.profileImage}`;
+        return getImageUrl(settings?.profileImage);
     };
 
     // Parse professional titles from comma-separated string

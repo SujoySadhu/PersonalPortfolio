@@ -1,45 +1,84 @@
-// index.js
+/**
+ * ============================================
+ * index.js - Legacy Entry Point (Reference Only)
+ * ============================================
+ * 
+ * This file was the original simple Express server setup.
+ * The production server now uses server.js with a complete MVC architecture.
+ * This file is kept for reference and learning purposes only.
+ * 
+ * @deprecated Use server.js instead for the main application
+ * @author Portfolio Admin
+ */
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
 
-// Middleware
+// ============================================
+// MIDDLEWARE CONFIGURATION
+// ============================================
+// Parse incoming JSON request bodies
 app.use(express.json());
+// Enable Cross-Origin Resource Sharing for frontend communication
 app.use(cors());
 
-// ১. MongoDB কানেকশন (Local)
-// 'my_portfolio' নামে অটোমেটিক ডাটাবেস তৈরি হয়ে যাবে
+// ============================================
+// DATABASE CONNECTION
+// ============================================
+// Connect to local MongoDB instance
+// Database 'my_portfolio' will be created automatically if it doesn't exist
 mongoose.connect('mongodb://127.0.0.1:27017/my_portfolio')
     .then(() => console.log('MongoDB Connected Successfully!'))
     .catch(err => console.log(err));
 
-// ২. একটি সিম্পল স্কিমা (Schema) বানানো
+// ============================================
+// SCHEMA DEFINITION
+// ============================================
+// Define a simple Project schema for storing portfolio projects
 const ProjectSchema = new mongoose.Schema({
-    title: String,
-    description: String,
-    image: String,
-    link: String
+    title: String,        // Project title/name
+    description: String,  // Brief description of the project
+    image: String,        // URL or path to project thumbnail
+    link: String          // External link to project (GitHub, live demo, etc.)
 });
+
+// Create the Project model from the schema
 const Project = mongoose.model('Project', ProjectSchema);
 
-// ৩. API তৈরি করা (Routes)
+// ============================================
+// API ROUTES
+// ============================================
 
-// ক. ডাটা পাওয়ার জন্য (GET)
+/**
+ * GET /projects
+ * Retrieve all projects from the database
+ * @returns {Array} List of all project documents
+ */
 app.get('/projects', async (req, res) => {
     const projects = await Project.find();
     res.json(projects);
 });
 
-// খ. ডাটা পাঠানোর জন্য (POST)
+/**
+ * POST /add-project
+ * Create a new project in the database
+ * @body {Object} Project data (title, description, image, link)
+ * @returns {Object} The newly created project document
+ */
 app.post('/add-project', async (req, res) => {
     const newProject = new Project(req.body);
     await newProject.save();
     res.json(newProject);
 });
 
-// ৪. সার্ভার চালু করা
-app.listen(5000, () => {
-    console.log('Server is running on port 5000');
+// ============================================
+// SERVER INITIALIZATION
+// ============================================
+// Start the Express server on port 5000
+const PORT = 5000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });

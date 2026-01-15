@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiAward, FiCalendar, FiExternalLink, FiStar } from 'react-icons/fi';
-import { categoriesAPI } from '../../services/api';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+import { categoriesAPI, getImageUrl } from '../../services/api';
 
 // Default fallback colors and icons
 const defaultCategoryColors = {
@@ -72,9 +70,7 @@ const AchievementCard = ({ achievement }) => {
         featured
     } = achievement;
 
-    const imageUrl = image 
-        ? (image.startsWith('http') ? image : `${API_URL}${image}`)
-        : null;
+    const imageUrl = image ? getImageUrl(image) : null;
 
     const formatDate = (dateString) => {
         if (!dateString) return '';

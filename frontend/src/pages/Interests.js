@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiHeart, FiExternalLink } from 'react-icons/fi';
-import { interestsAPI, categoriesAPI } from '../services/api';
+import { interestsAPI, categoriesAPI, getImageUrl } from '../services/api';
 import Spinner from '../components/common/Spinner';
 
 const Interests = () => {
@@ -8,8 +8,6 @@ const Interests = () => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('all');
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     useEffect(() => {
         fetchData();
@@ -103,7 +101,7 @@ const Interests = () => {
                                 {interest.image && (
                                     <div className="aspect-video overflow-hidden">
                                         <img
-                                            src={`${API_URL}${interest.image}`}
+                                            src={getImageUrl(interest.image)}
                                             alt={interest.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                         />

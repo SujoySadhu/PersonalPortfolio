@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { FiCode, FiClock, FiCalendar, FiExternalLink } from 'react-icons/fi';
-import { currentWorkAPI } from '../services/api';
+import { currentWorkAPI, getImageUrl } from '../services/api';
 import Spinner from '../components/common/Spinner';
 
 const CurrentWork = () => {
     const [works, setWorks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState('all');
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     const typeOptions = [
         { value: 'all', label: 'All', icon: '📋' },
@@ -111,7 +109,7 @@ const CurrentWork = () => {
                                     {work.image && (
                                         <div className="md:w-64 flex-shrink-0">
                                             <img
-                                                src={`${API_URL}${work.image}`}
+                                                src={getImageUrl(work.image)}
                                                 alt={work.title}
                                                 className="w-full h-48 md:h-full object-cover"
                                             />

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiTrash2, FiStar, FiExternalLink } from 'react-icons/fi';
-import { projectsAPI } from '../../services/api';
+import { projectsAPI, getImageUrl } from '../../services/api';
 import Loading from '../../components/common/Loading';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const AdminProjects = () => {
     const [projects, setProjects] = useState([]);
@@ -92,7 +90,7 @@ const AdminProjects = () => {
                                                     <div className="w-12 h-12 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
                                                         {project.thumbnail ? (
                                                             <img
-                                                                src={project.thumbnail.startsWith('http') ? project.thumbnail : `${API_URL}${project.thumbnail}`}
+                                                                src={getImageUrl(project.thumbnail)}
                                                                 alt={project.title}
                                                                 className="w-full h-full object-cover"
                                                             />

@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FiGithub, FiExternalLink, FiPlay, FiStar, FiYoutube } from 'react-icons/fi';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+import { getImageUrl } from '../../services/api';
 
 const ProjectCard = ({ project }) => {
     const {
@@ -18,9 +17,7 @@ const ProjectCard = ({ project }) => {
         featured
     } = project;
 
-    const imageUrl = thumbnail 
-        ? (thumbnail.startsWith('http') ? thumbnail : `${API_URL}${thumbnail}`)
-        : 'https://via.placeholder.com/400x250?text=No+Image';
+    const imageUrl = getImageUrl(thumbnail) || 'https://via.placeholder.com/400x250?text=No+Image';
 
     return (
         <div className="card group hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1">

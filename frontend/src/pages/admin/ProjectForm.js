@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiSave, FiArrowLeft, FiX, FiPlus, FiImage } from 'react-icons/fi';
-import { projectsAPI, categoriesAPI } from '../../services/api';
+import { projectsAPI, categoriesAPI, getImageUrl } from '../../services/api';
 import Loading from '../../components/common/Loading';
 
 const defaultCategories = [
@@ -379,7 +379,7 @@ const ProjectForm = () => {
                                     {existingImages.map((img, index) => (
                                         <div key={index} className="relative group">
                                             <img
-                                                src={img.startsWith('http') ? img : `http://localhost:5000${img}`}
+                                                src={getImageUrl(img)}
                                                 alt={`Existing ${index + 1}`}
                                                 className="w-24 h-24 object-cover rounded-lg"
                                             />

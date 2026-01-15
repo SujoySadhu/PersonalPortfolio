@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FiClock, FiCalendar, FiEye, FiTag } from 'react-icons/fi';
+import { getImageUrl } from '../../services/api';
 
 const BlogCard = ({ blog, featured = false }) => {
     const formatDate = (date) => {
@@ -10,8 +11,6 @@ const BlogCard = ({ blog, featured = false }) => {
             day: 'numeric'
         });
     };
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     if (featured) {
         return (
@@ -23,7 +22,7 @@ const BlogCard = ({ blog, featured = false }) => {
                     <div className="md:w-1/2">
                         {blog.coverImage ? (
                             <img
-                                src={`${API_URL}${blog.coverImage}`}
+                                src={getImageUrl(blog.coverImage)}
                                 alt={blog.title}
                                 className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
@@ -78,7 +77,7 @@ const BlogCard = ({ blog, featured = false }) => {
             <div className="aspect-video overflow-hidden">
                 {blog.coverImage ? (
                     <img
-                        src={`${API_URL}${blog.coverImage}`}
+                        src={getImageUrl(blog.coverImage)}
                         alt={blog.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

@@ -1,23 +1,50 @@
 /**
- * Password Reset Script (Secure)
+ * ============================================
+ * PASSWORD RESET SCRIPT (Secure CLI Tool)
+ * ============================================
  * 
- * Use this script to reset the admin password if you forget it.
- * Requires secret key for security.
+ * Purpose: Reset admin password securely via command line
+ * This script requires a secret key to prevent unauthorized access.
+ * 
+ * Security Features:
+ * - Requires ADMIN_SECRET environment variable for authentication
+ * - Validates password length (minimum 6 characters)
+ * - Verifies user existence before attempting reset
  * 
  * Usage:
  *   node resetPassword.js <email> <new-password> <secret-key>
  * 
  * Example:
  *   node resetPassword.js admin@portfolio.com newpassword123 YourSecretKey123!
+ * 
+ * Environment Variables:
+ *   ADMIN_SECRET - Secret key for authorization (set in .env file)
+ * 
+ * Security Notes:
+ * - Never share the ADMIN_SECRET
+ * - Change default secret key in production
+ * - Delete this script from production server if not needed
+ * 
+ * @author Portfolio Admin
  */
 
 require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./models/User');
 
+// ============================================
+// SECURITY CONFIGURATION
+// ============================================
+// Secret key required for password reset authorization
+// Set ADMIN_SECRET in .env file for production
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'DefaultSecretKey123!';
 
+/**
+ * Main function to reset user password
+ * Validates inputs, verifies secret key, and updates password
+ */
 const resetPassword = async () => {
+    // Parse command line arguments
     const email = process.argv[2];
     const newPassword = process.argv[3];
     const secretKey = process.argv[4];

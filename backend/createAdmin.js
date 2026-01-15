@@ -1,21 +1,42 @@
 /**
- * Create Admin User Script
+ * ============================================
+ * CREATE ADMIN USER SCRIPT
+ * ============================================
+ * 
+ * Purpose: Create a new admin user for the portfolio dashboard
+ * This script should be run once during initial setup.
+ * 
+ * Features:
+ * - Creates admin user with default or custom credentials
+ * - Prevents duplicate user creation
+ * - Validates database connection
  * 
  * Usage:
- *   node createAdmin.js
- *   node createAdmin.js <email> <password> <name>
+ *   node createAdmin.js                                    # Use defaults
+ *   node createAdmin.js <email> <password> <name>          # Custom values
  * 
  * Examples:
  *   node createAdmin.js
  *   node createAdmin.js admin@example.com mypassword123 "John Doe"
+ * 
+ * Default Credentials:
+ *   Email: admin@portfolio.com
+ *   Password: admin123
+ *   Name: Admin
+ * 
+ * @author Portfolio Admin
  */
 
 require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./models/User');
 
+/**
+ * Main function to create an admin user
+ * Connects to MongoDB, checks for existing user, and creates new admin
+ */
 const createAdmin = async () => {
-    // Default values or command line arguments
+    // Parse command line arguments or use default values
     const email = process.argv[2] || 'admin@portfolio.com';
     const password = process.argv[3] || 'admin123';
     const name = process.argv[4] || 'Admin';

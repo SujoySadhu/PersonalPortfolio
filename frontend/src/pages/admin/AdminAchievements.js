@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiTrash2, FiStar, FiAward, FiExternalLink, FiSearch } from 'react-icons/fi';
-import { achievementsAPI } from '../../services/api';
+import { achievementsAPI, getImageUrl } from '../../services/api';
 import Spinner from '../../components/common/Spinner';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const categoryColors = {
     competition: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -185,7 +183,7 @@ const AdminAchievements = () => {
                                             <div className="flex items-center gap-4">
                                                 {achievement.image ? (
                                                     <img
-                                                        src={achievement.image.startsWith('http') ? achievement.image : `${API_URL}${achievement.image}`}
+                                                        src={getImageUrl(achievement.image)}
                                                         alt={achievement.title}
                                                         className="w-12 h-12 rounded-lg object-cover"
                                                     />

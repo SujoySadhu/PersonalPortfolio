@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft, FiSave, FiUpload, FiX, FiAward } from 'react-icons/fi';
-import { achievementsAPI, categoriesAPI } from '../../services/api';
+import { achievementsAPI, categoriesAPI, getImageUrl } from '../../services/api';
 import Spinner from '../../components/common/Spinner';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 // Fallback categories if API fails
 const defaultCategories = [
@@ -93,7 +91,7 @@ const AchievementForm = () => {
             });
 
             if (achievement.image) {
-                setImagePreview(achievement.image.startsWith('http') ? achievement.image : `${API_URL}${achievement.image}`);
+                setImagePreview(getImageUrl(achievement.image));
             }
         } catch (err) {
             setError('Failed to fetch achievement');

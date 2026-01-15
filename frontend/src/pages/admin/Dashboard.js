@@ -4,7 +4,7 @@ import {
     FiFolder, FiCode, FiFileText, FiAward,
     FiPlus, FiEye
 } from 'react-icons/fi';
-import { projectsAPI, skillsAPI, researchAPI, achievementsAPI } from '../../services/api';
+import { projectsAPI, skillsAPI, researchAPI, achievementsAPI, getImageUrl } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Loading from '../../components/common/Loading';
 
@@ -192,7 +192,7 @@ const Dashboard = () => {
                                         <div className="w-10 h-10 bg-gray-700 rounded-lg overflow-hidden">
                                             {project.thumbnail ? (
                                                 <img
-                                                    src={project.thumbnail.startsWith('http') ? project.thumbnail : `http://localhost:5000${project.thumbnail}`}
+                                                    src={getImageUrl(project.thumbnail)}
                                                     alt={project.title}
                                                     className="w-full h-full object-cover"
                                                 />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiStar, FiSearch, FiCalendar, FiClock } from 'react-icons/fi';
-import { blogsAPI } from '../../services/api';
+import { blogsAPI, getImageUrl } from '../../services/api';
 import Spinner from '../../components/common/Spinner';
 import toast from 'react-hot-toast';
 
@@ -15,8 +15,6 @@ const AdminBlogs = () => {
         totalPages: 1,
         total: 0
     });
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     useEffect(() => {
         fetchBlogs();
@@ -221,7 +219,7 @@ const AdminBlogs = () => {
                                                 <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0">
                                                     {blog.coverImage ? (
                                                         <img
-                                                            src={`${API_URL}${blog.coverImage}`}
+                                                            src={getImageUrl(blog.coverImage)}
                                                             alt={blog.title}
                                                             className="w-full h-full object-cover"
                                                         />

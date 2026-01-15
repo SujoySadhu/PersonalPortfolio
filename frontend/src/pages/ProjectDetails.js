@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
-import { projectsAPI } from '../services/api';
+import { projectsAPI, getImageUrl as getImg } from '../services/api';
 import Loading from '../components/common/Loading';
-
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const ProjectDetails = () => {
     const { id } = useParams();
@@ -29,8 +27,7 @@ const ProjectDetails = () => {
     }, [fetchProject]);
 
     const getImageUrl = (image) => {
-        if (!image) return 'https://via.placeholder.com/800x500?text=No+Image';
-        return image.startsWith('http') ? image : `${API_URL}${image}`;
+        return getImg(image) || 'https://via.placeholder.com/800x500?text=No+Image';
     };
 
     const extractYouTubeId = (url) => {

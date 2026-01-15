@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiCalendar, FiClock, FiEye, FiTag, FiArrowLeft, FiShare2 } from 'react-icons/fi';
 import { FaFacebook, FaTwitter, FaLinkedin } from 'react-icons/fa';
-import { blogsAPI } from '../services/api';
+import { blogsAPI, getImageUrl } from '../services/api';
 import Spinner from '../components/common/Spinner';
 
 const BlogPost = () => {
@@ -11,8 +11,6 @@ const BlogPost = () => {
     const [blog, setBlog] = useState(null);
     const [loading, setLoading] = useState(true);
     const [relatedBlogs, setRelatedBlogs] = useState([]);
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     useEffect(() => {
         fetchBlog();
@@ -98,7 +96,7 @@ const BlogPost = () => {
                 {blog.coverImage ? (
                     <div className="h-96 md:h-[500px] relative">
                         <img
-                            src={`${API_URL}${blog.coverImage}`}
+                            src={getImageUrl(blog.coverImage)}
                             alt={blog.title}
                             className="w-full h-full object-cover"
                         />
@@ -231,7 +229,7 @@ const BlogPost = () => {
                                         <div className="aspect-video overflow-hidden">
                                             {relatedBlog.coverImage ? (
                                                 <img
-                                                    src={`${API_URL}${relatedBlog.coverImage}`}
+                                                    src={getImageUrl(relatedBlog.coverImage)}
                                                     alt={relatedBlog.title}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 />
