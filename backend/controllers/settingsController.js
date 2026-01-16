@@ -35,12 +35,29 @@ exports.updateSettings = async (req, res) => {
         let settings = await Settings.findOne();
         
         if (!settings) {
+            // Create new settings if none exist
             settings = await Settings.create(req.body);
         } else {
-            settings = await Settings.findOneAndUpdate({}, req.body, {
-                new: true,
-                runValidators: true
-            });
+            // Build update object to properly handle nested socialLinks
+            const updateData = { ...req.body };
+            
+            // If socialLinks is provided, merge it with existing socialLinks
+            if (req.body.socialLinks) {
+                updateData.socialLinks = {
+                    ...settings.socialLinks.toObject(),
+                    ...req.body.socialLinks
+                };
+            }
+            
+            // Update settings with merged data
+            settings = await Settings.findOneAndUpdate(
+                {}, 
+                { $set: updateData },
+                {
+                    new: true,
+                    runValidators: true
+                }
+            );
         }
         
         res.status(200).json({
@@ -48,11 +65,13 @@ exports.updateSettings = async (req, res) => {
             data: settings
         });
     } catch (error) {
+        console.error('Settings update error:', error);
         res.status(500).json({
             success: false,
             message: 'Server Error',
             error: error.message
         });
+
     }
 };
 
