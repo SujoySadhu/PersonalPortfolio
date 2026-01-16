@@ -33,6 +33,8 @@ const AchievementForm = () => {
         date: '',
         issuer: '',
         credentialLink: '',
+        credentialId: '',
+        profileUrl: '',
         position: '',
         featured: false,
         order: 0
@@ -85,6 +87,8 @@ const AchievementForm = () => {
                 date: formattedDate,
                 issuer: achievement.issuer || '',
                 credentialLink: achievement.credentialLink || '',
+                credentialId: achievement.credentialId || '',
+                profileUrl: achievement.profileUrl || '',
                 position: achievement.position || '',
                 featured: achievement.featured || false,
                 order: achievement.order || 0
@@ -314,6 +318,38 @@ const AchievementForm = () => {
                                         placeholder="https://example.com/certificate"
                                         className="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
                                     />
+                                    <p className="text-gray-500 text-xs mt-1">Link to verify your credential</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-gray-300 text-sm font-medium mb-2">
+                                            Certificate / Credential ID
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="credentialId"
+                                            value={formData.credentialId}
+                                            onChange={handleChange}
+                                            placeholder="e.g., ABC123XYZ"
+                                            className="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-300 text-sm font-medium mb-2">
+                                            Profile Link
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="profileUrl"
+                                            value={formData.profileUrl}
+                                            onChange={handleChange}
+                                            placeholder="https://codeforces.com/profile/username"
+                                            className="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
+                                        />
+                                        <p className="text-gray-500 text-xs mt-1">Your profile on the platform</p>
+                                    </div>
                                 </div>
 
                                 {/* Featured Checkbox */}

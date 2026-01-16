@@ -27,6 +27,18 @@ const AchievementSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    credentialId: {
+        type: String,
+        trim: true
+    },
+    profileUrl: {
+        type: String,
+        trim: true
+    },
+    certificateUrl: {
+        type: String,
+        trim: true
+    },
     image: {
         type: String
     },
