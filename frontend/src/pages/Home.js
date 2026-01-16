@@ -51,9 +51,9 @@ const Home = () => {
         }
     };
 
-    const getProfileImageUrl = () => {
-        return getImageUrl(settings?.profileImage);
-    };
+    // Use local profile image from public folder for faster loading
+    // Place your profile image as "profile.jpeg" in the frontend/public folder
+    const LOCAL_PROFILE_IMAGE = '/profile.jpeg';
 
     return (
         <div className="min-h-screen pt-16">
@@ -75,20 +75,21 @@ const Home = () => {
                                 <div className="absolute -inset-1 bg-gradient-to-br from-primary-500 via-purple-500 to-cyan-500 rounded-full opacity-60 blur-sm"></div>
                                 
                                 {/* Image - Responsive sizing for all screens */}
+                                {/* Uses local image from public folder for instant loading */}
                                 <div className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden border-4 border-dark-100">
-                                    {getProfileImageUrl() ? (
-                                        <img 
-                                            src={getProfileImageUrl()} 
-                                            alt="Profile" 
-                                            className="w-full h-full object-cover object-top"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-primary-600 to-purple-600 flex items-center justify-center">
-                                            <span className="text-7xl text-white font-bold">
-                                                {settings?.name?.charAt(0) || '?'}
-                                            </span>
-                                        </div>
-                                    )}
+                                    <img 
+                                        src={LOCAL_PROFILE_IMAGE} 
+                                        alt="Profile" 
+                                        className="w-full h-full object-cover object-top"
+                                        onError={(e) => {
+                                            // Fallback to API image if local doesn't exist
+                                            const apiImage = getImageUrl(settings?.profileImage);
+                                            if (apiImage) {
+                                                e.target.onerror = null; // Prevent infinite loop
+                                                e.target.src = apiImage;
+                                            }
+                                        }}
+                                    />
                                 </div>
                             </div>
                         </div>
