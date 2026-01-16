@@ -71,9 +71,39 @@ app.use(express.urlencoded({ extended: true }));
 // ============================================
 // Enable Cross-Origin Resource Sharing
 // Allows frontend (React app) to communicate with backend
+
+// List of allowed origins for CORS
+// Add your Vercel deployment URLs here
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://personal-portfolio-avhln58cp-sujoys-projects-e1b2694e.vercel.app',
+    'https://personal-portfolio-git-main-sujoys-projects-e1b2694e.vercel.app',
+    'https://personal-portfolio-phi.vercel.app',
+    // Add any other Vercel preview URLs or custom domains here
+];
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    credentials: true  // Allow cookies and auth headers
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        
+        // Check if origin is in the allowed list
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        
+        // Allow all Vercel preview deployments
+        if (origin.includes('vercel.app')) {
+            return callback(null, true);
+        }
+        
+        // For development - allow all origins (can restrict in production)
+        return callback(null, true);
+    },
+    credentials: true,  // Allow cookies and auth headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // ============================================
