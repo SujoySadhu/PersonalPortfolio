@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiGithub, FiLinkedin, FiTwitter, FiDownload, FiMail, FiMapPin, FiCode, FiBookOpen, FiAward, FiEdit3, FiHeart, FiActivity, FiX, FiCalendar, FiExternalLink, FiShare2, FiMaximize2, FiEye, FiLink } from 'react-icons/fi';
+import { FiArrowRight, FiGithub, FiLinkedin, FiTwitter, FiDownload, FiMail, FiMapPin, FiCode, FiBookOpen, FiAward, FiEdit3, FiHeart, FiActivity, FiX, FiCalendar, FiExternalLink, FiMaximize2, FiEye, FiLink } from 'react-icons/fi';
 import { SiLeetcode, SiCodeforces, SiCodechef, SiHackerrank } from 'react-icons/si';
 import { projectsAPI, skillsAPI, settingsAPI, researchAPI, achievementsAPI, blogsAPI, interestsAPI, currentWorkAPI, getImageUrl } from '../services/api';
 import ProjectCard from '../components/projects/ProjectCard';
@@ -56,9 +56,9 @@ const Home = () => {
     };
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen pt-16">
             {/* Hero Section - Clean & Professional */}
-            <section className="relative h-screen flex items-center justify-center px-4 py-16 overflow-hidden">
+            <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-8 sm:py-16 overflow-hidden">
                 {/* Subtle Background */}
                 <div className="absolute inset-0">
                     <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-[120px]"></div>
@@ -66,16 +66,16 @@ const Home = () => {
                 </div>
 
                 <div className="relative z-10 max-w-6xl mx-auto w-full">
-                    <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                    <div className="flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-20">
                         
-                        {/* Profile Image - Bigger Size */}
+                        {/* Profile Image - Responsive Size */}
                         <div className="flex-shrink-0 animate-fade-in">
                             <div className="relative">
                                 {/* Gradient Ring */}
                                 <div className="absolute -inset-1 bg-gradient-to-br from-primary-500 via-purple-500 to-cyan-500 rounded-full opacity-60 blur-sm"></div>
                                 
-                                {/* Image - Larger */}
-                                <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden border-4 border-dark-100">
+                                {/* Image - Responsive sizing for all screens */}
+                                <div className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden border-4 border-dark-100">
                                     {getProfileImageUrl() ? (
                                         <img 
                                             src={getProfileImageUrl()} 
@@ -247,7 +247,7 @@ const Home = () => {
                     {loading ? (
                         <Loading />
                     ) : featuredProjects.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                             {featuredProjects.map((project) => (
                                 <ProjectCard key={project._id} project={project} />
                             ))}
