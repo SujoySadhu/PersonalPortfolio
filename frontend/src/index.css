@@ -166,21 +166,34 @@
   will-change: transform;
 }
 
-/* Profile image animated glow ring */
+/* Profile image — clean professional glow ring */
 .profile-ring {
-  background: conic-gradient(from 0deg, #3b82f6, #8b5cf6, #06b6d4, #34d399, #3b82f6);
-  padding: 3px;
+  position: relative;
   border-radius: 50%;
-  animation: ringRotate 6s linear infinite;
+  padding: 3px;
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #3b82f6 100%);
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.15),
+    0 0 24px 4px rgba(59, 130, 246, 0.20),
+    0 0 60px 8px rgba(99, 102, 241, 0.10);
+  animation: ringPulse 3s ease-in-out infinite;
 }
 
-@keyframes ringRotate {
-  0% {
-    filter: hue-rotate(0deg);
+@keyframes ringPulse {
+
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.15),
+      0 0 24px 4px rgba(59, 130, 246, 0.20),
+      0 0 60px 8px rgba(99, 102, 241, 0.10);
   }
 
-  100% {
-    filter: hue-rotate(360deg);
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.25),
+      0 0 32px 6px rgba(59, 130, 246, 0.30),
+      0 0 80px 12px rgba(99, 102, 241, 0.15);
   }
 }
 
