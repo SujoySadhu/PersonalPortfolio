@@ -67,7 +67,7 @@ exports.submitContact = async (req, res) => {
         // Respond immediately
         res.status(200).json({
             success: true,
-            message: 'Message sent successfully! You will receive a confirmation email shortly.'
+            message: "Thanks for reaching out! I'll get back to you shortly."
         });
 
         // Auto-reply to sender — fire-and-forget
