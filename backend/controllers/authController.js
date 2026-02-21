@@ -2,10 +2,7 @@ const User = require('../models/User');
 const Settings = require('../models/Settings');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { Resend } = require('resend');
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Portfolio Admin <onboarding@resend.dev>';
+const { sendEmail } = require('../utils/emailHelper');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -21,8 +18,7 @@ const generateCode = () => {
 
 // Send 2FA code via email
 const send2FAEmail = async (email, code, name) => {
-    const { error } = await resend.emails.send({
-        from: FROM_EMAIL,
+    await sendEmail({
         to: email,
         subject: `🔐 Your Login Verification Code: ${code}`,
         html: `
@@ -41,9 +37,7 @@ const send2FAEmail = async (email, code, name) => {
             </div>
         `,
     });
-    if (error) throw new Error(error.message);
 };
-
 // Check if 2FA is enabled (reads from DB Settings)
 const is2FAEnabled = async () => {
     try {
@@ -315,10 +309,9 @@ exports.forgotPassword = async (req, res) => {
         user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         await user.save({ validateModifiedOnly: true });
 
-        // Send via Resend HTTP API (works on Render free tier)
+        // Send reset code email (uses Resend on production, nodemailer locally)
         console.log(`[ForgotPassword] Sending reset code to ${user.email}...`);
-        const { error: emailError } = await resend.emails.send({
-            from: FROM_EMAIL,
+        await sendEmail({
             to: user.email,
             subject: `🔑 Your Password Reset Code: ${code}`,
             html: `
@@ -339,7 +332,6 @@ exports.forgotPassword = async (req, res) => {
                 </div>
             `,
         });
-        if (emailError) throw new Error(emailError.message);
 
         console.log(`[ForgotPassword] Email sent successfully to ${user.email}`);
         res.status(200).json({
