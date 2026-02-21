@@ -1,14 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
 import { projectsAPI, getImageUrl as getImg } from '../services/api';
 import { processContentImages } from '../config/processContentImages';
-import Loading from '../components/common/Loading';
+
+// Skeleton shown when loading from direct URL (not from project list)
+const ProjectSkeleton = () => (
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 animate-pulse">
+        <div className="max-w-4xl mx-auto">
+            <div className="h-4 w-28 bg-gray-800 rounded mb-8" />
+            <div className="h-2 w-12 bg-primary-500/40 rounded mb-4" />
+            <div className="h-9 w-2/3 bg-gray-700 rounded mb-6" />
+            <div className="aspect-video w-full bg-gray-800 rounded-2xl mb-8" />
+            <div className="flex gap-3 mb-8">
+                <div className="h-9 w-24 bg-gray-800 rounded-lg" />
+                <div className="h-9 w-24 bg-gray-800 rounded-lg" />
+            </div>
+            <div className="space-y-3 mb-8">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-4 bg-gray-800 rounded" style={{ width: `${90 - i * 8}%` }} />)}
+            </div>
+            <div className="flex gap-2">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-7 w-20 bg-gray-800 rounded-lg" />)}
+            </div>
+        </div>
+    </div>
+);
 
 const ProjectDetails = () => {
     const { id } = useParams();
-    const [project, setProject] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const location = useLocation();
+
+    // Use project passed via router state for instant render (from project list)
+    const [project, setProject] = useState(location.state?.project || null);
+    const [loading, setLoading] = useState(!location.state?.project);
+
     const [selectedImage, setSelectedImage] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
 
@@ -24,8 +49,11 @@ const ProjectDetails = () => {
     }, [id]);
 
     useEffect(() => {
-        fetchProject();
-    }, [fetchProject]);
+        // Only fetch from API if we don't already have data (direct URL / page refresh)
+        if (!location.state?.project) {
+            fetchProject();
+        }
+    }, [fetchProject, location.state?.project]);
 
     const getImageUrl = (image) => {
         return getImg(image) || 'https://via.placeholder.com/800x500?text=No+Image';
@@ -50,11 +78,7 @@ const ProjectDetails = () => {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen pt-24 flex items-center justify-center">
-                <Loading text="Loading project..." />
-            </div>
-        );
+        return <ProjectSkeleton />;
     }
 
     if (!project) {
@@ -91,8 +115,8 @@ const ProjectDetails = () => {
                         {/* Grid Layout */}
                         {project.imageLayout === 'grid' ? (
                             <div className={`grid gap-3 ${project.images.length === 1 ? 'grid-cols-1' :
-                                    project.images.length === 2 ? 'grid-cols-2' :
-                                        'grid-cols-2 md:grid-cols-3'
+                                project.images.length === 2 ? 'grid-cols-2' :
+                                    'grid-cols-2 md:grid-cols-3'
                                 }`}>
                                 {project.images.map((image, index) => (
                                     <div

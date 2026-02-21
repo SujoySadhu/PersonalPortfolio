@@ -104,6 +104,7 @@ const ProjectCard = ({ project }) => {
                 <div className="flex flex-wrap items-center gap-2.5 mt-auto pt-4 border-t border-gray-800/40">
                     <Link
                         to={`/projects/${_id}`}
+                        state={{ project }}
                         className="inline-flex items-center gap-1.5 px-5 py-2 bg-white text-dark-200 text-sm font-semibold rounded-full hover:bg-gray-100 hover:shadow-lg hover:shadow-white/10 transition-all duration-200 active:scale-95"
                     >
                         View Details <FiArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
