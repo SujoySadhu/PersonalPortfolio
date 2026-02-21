@@ -1,5 +1,17 @@
 const nodemailer = require('nodemailer');
 
+// Create reusable transporter with timeouts
+const createTransporter = () => nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+    connectionTimeout: 10000,  // 10s to connect
+    greetingTimeout: 10000,    // 10s for greeting
+    socketTimeout: 15000,      // 15s for socket idle
+});
+
 // Create contact from form submission and send email notification
 exports.submitContact = async (req, res) => {
     try {
@@ -22,17 +34,13 @@ exports.submitContact = async (req, res) => {
             });
         }
 
-        // Create transporter
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
+        const transporter = createTransporter();
 
-        // Email to portfolio owner
-        const mailToOwner = {
+        // Verify SMTP connection first (fast-fail on auth errors)
+        await transporter.verify();
+
+        // Email to portfolio owner (critical - must succeed)
+        await transporter.sendMail({
             from: `"Portfolio Contact" <${process.env.EMAIL_USER}>`,
             to: process.env.EMAIL_TO || process.env.EMAIL_USER,
             replyTo: email,
@@ -75,10 +83,16 @@ exports.submitContact = async (req, res) => {
                     </div>
                 </div>
             `,
-        };
+        });
 
-        // Auto-reply to sender
-        const mailToSender = {
+        // Respond immediately — owner got the message, no more waiting
+        res.status(200).json({
+            success: true,
+            message: 'Message sent successfully! You will receive a confirmation email shortly.'
+        });
+
+        // Auto-reply to sender — fire-and-forget (non-blocking, won't delay response)
+        transporter.sendMail({
             from: `"Sujoy Sadhu" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: `Re: ${subject} — Thank you for reaching out!`,
@@ -103,22 +117,11 @@ exports.submitContact = async (req, res) => {
                     </div>
                 </div>
             `,
-        };
+        }).catch(err => console.error('[Contact] Auto-reply failed (non-critical):', err.message));
 
-        // Send both emails
-        await Promise.all([
-            transporter.sendMail(mailToOwner),
-            transporter.sendMail(mailToSender),
-        ]);
-
-        res.status(200).json({
-            success: true,
-            message: 'Message sent successfully! You will receive a confirmation email shortly.'
-        });
     } catch (error) {
-        console.error('Contact form error:', error);
+        console.error('[Contact] Error:', error.message);
 
-        // Check if it's an email config issue
         if (error.code === 'EAUTH' || error.responseCode === 535) {
             return res.status(500).json({
                 success: false,
@@ -128,7 +131,7 @@ exports.submitContact = async (req, res) => {
 
         res.status(500).json({
             success: false,
-            message: 'Failed to send message. Please try again later or contact directly via email.'
+            message: `Failed to send message: ${error.message}`
         });
     }
 };
