@@ -2,7 +2,10 @@ const User = require('../models/User');
 const Settings = require('../models/Settings');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.FROM_EMAIL || 'Portfolio Admin <onboarding@resend.dev>';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -18,16 +21,8 @@ const generateCode = () => {
 
 // Send 2FA code via email
 const send2FAEmail = async (email, code, name) => {
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        },
-    });
-
-    await transporter.sendMail({
-        from: `"Portfolio Admin" <${process.env.EMAIL_USER}>`,
+    const { error } = await resend.emails.send({
+        from: FROM_EMAIL,
         to: email,
         subject: `🔐 Your Login Verification Code: ${code}`,
         html: `
@@ -35,11 +30,9 @@ const send2FAEmail = async (email, code, name) => {
                 <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 40px 30px; border-radius: 16px; color: #e2e8f0; text-align: center;">
                     <h2 style="color: #60a5fa; margin-top: 0; font-size: 20px;">Admin Login Verification</h2>
                     <p style="color: #94a3b8; margin-bottom: 30px;">Hi ${name}, enter this code to complete your login:</p>
-                    
                     <div style="background: #0f172a; border: 2px solid #3b82f6; border-radius: 12px; padding: 20px; margin: 0 auto; max-width: 280px;">
-                        <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #60a5fa; font-family: 'JetBrains Mono', monospace;">${code}</span>
+                        <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #60a5fa; font-family: monospace;">${code}</span>
                     </div>
-                    
                     <p style="color: #64748b; font-size: 13px; margin-top: 25px;">
                         This code expires in <strong style="color: #f59e0b;">5 minutes</strong>.<br/>
                         If you didn't request this, ignore this email.
@@ -48,6 +41,7 @@ const send2FAEmail = async (email, code, name) => {
             </div>
         `,
     });
+    if (error) throw new Error(error.message);
 };
 
 // Check if 2FA is enabled (reads from DB Settings)
@@ -321,21 +315,10 @@ exports.forgotPassword = async (req, res) => {
         user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         await user.save({ validateModifiedOnly: true });
 
-        // Build transporter
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
-
-        // Verify SMTP connection before sending
-        await transporter.verify();
-        console.log(`[ForgotPassword] SMTP verified, sending to ${user.email}...`);
-
-        await transporter.sendMail({
-            from: `"Portfolio Admin" <${process.env.EMAIL_USER}>`,
+        // Send via Resend HTTP API (works on Render free tier)
+        console.log(`[ForgotPassword] Sending reset code to ${user.email}...`);
+        const { error: emailError } = await resend.emails.send({
+            from: FROM_EMAIL,
             to: user.email,
             subject: `🔑 Your Password Reset Code: ${code}`,
             html: `
@@ -345,11 +328,9 @@ exports.forgotPassword = async (req, res) => {
                         <p style="color: #94a3b8; margin-bottom: 30px; line-height: 1.6;">
                             Hi ${user.name},<br/>Use this code to reset your password:
                         </p>
-                        
                         <div style="background: #0f172a; border: 2px solid #3b82f6; border-radius: 12px; padding: 24px; margin: 0 auto; max-width: 280px;">
                             <span style="font-size: 40px; font-weight: 700; letter-spacing: 10px; color: #60a5fa; font-family: monospace;">${code}</span>
                         </div>
-                        
                         <p style="color: #64748b; font-size: 13px; margin-top: 25px; line-height: 1.6;">
                             This code expires in <strong style="color: #f59e0b;">10 minutes</strong>.<br/>
                             If you didn't request this, ignore this email.
@@ -358,6 +339,7 @@ exports.forgotPassword = async (req, res) => {
                 </div>
             `,
         });
+        if (emailError) throw new Error(emailError.message);
 
         console.log(`[ForgotPassword] Email sent successfully to ${user.email}`);
         res.status(200).json({
