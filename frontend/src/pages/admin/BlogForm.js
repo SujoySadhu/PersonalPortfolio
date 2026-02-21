@@ -1,15 +1,80 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { FiSave, FiArrowLeft, FiImage, FiX, FiPlus } from 'react-icons/fi';
 import { blogsAPI, categoriesAPI, getImageUrl, BACKEND_URL } from '../../services/api';
 import Spinner from '../../components/common/Spinner';
 import toast from 'react-hot-toast';
+import { quillFormats as blogQuillFormats, quillToolbar, attachImageDeleteHandler } from '../../config/quillConfig';
 
 const BlogForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditing = Boolean(id);
     const fileInputRef = useRef(null);
+    const quillRef = useRef(null);
+
+    // Custom image handler: uploads to server, supports multi-select
+    const imageHandler = useCallback(() => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.setAttribute('multiple', 'true');
+        input.click();
+        input.onchange = async () => {
+            const files = Array.from(input.files);
+            if (!files.length) return;
+            const token = localStorage.getItem('token');
+            const uploadedUrls = [];
+
+            for (const file of files) {
+                const data = new FormData();
+                data.append('image', file);
+                try {
+                    const res = await fetch(`${BACKEND_URL}/api/upload/editor-image`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: data,
+                    });
+                    if (!res.ok) {
+                        console.error('Upload failed:', res.status);
+                        continue;
+                    }
+                    const json = await res.json();
+                    if (json.success && json.url) {
+                        uploadedUrls.push(`${BACKEND_URL}${json.url}`);
+                    }
+                } catch (err) {
+                    console.error('Editor image upload error:', err);
+                }
+            }
+
+            if (uploadedUrls.length === 0) {
+                toast.error('Image upload failed');
+                return;
+            }
+
+            const editor = quillRef.current?.getEditor?.() || quillRef.current?.editor;
+            if (!editor) return;
+
+            let insertAt = (editor.getSelection(true) || { index: editor.getLength() - 1 }).index;
+
+            // Insert each image one by one
+            for (const url of uploadedUrls) {
+                editor.insertEmbed(insertAt, 'image', url);
+                insertAt += 1;
+            }
+            editor.setSelection(insertAt);
+        };
+    }, []);
+
+    const blogQuillModules = useMemo(() => ({
+        toolbar: {
+            container: quillToolbar,
+            handlers: { image: imageHandler }
+        }
+    }), [imageHandler]);
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -38,6 +103,18 @@ const BlogForm = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
+
+    // Attach image delete handler to Quill editor
+    useEffect(() => {
+        let cleanup = () => {};
+        const timer = setTimeout(() => {
+            cleanup = attachImageDeleteHandler(quillRef) || (() => {});
+        }, 500);
+        return () => {
+            clearTimeout(timer);
+            cleanup();
+        };
+    }, [loading]);
 
     const fetchCategories = async () => {
         try {
@@ -218,19 +295,18 @@ const BlogForm = () => {
                         {/* Content */}
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Content * (HTML supported)
+                                Content *
                             </label>
-                            <textarea
-                                name="content"
+                            <ReactQuill
+                                ref={quillRef}
+                                theme="snow"
                                 value={formData.content}
-                                onChange={handleChange}
-                                rows={15}
-                                placeholder="Write your blog content here... HTML tags are supported for formatting."
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                                onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
+                                modules={blogQuillModules}
+                                formats={blogQuillFormats}
+                                placeholder="Write your blog content — add images, colors, different fonts..."
+                                className="bg-white"
                             />
-                            <p className="mt-2 text-sm text-gray-500">
-                                Tip: Use HTML tags like &lt;h2&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;code&gt;, &lt;pre&gt; for formatting.
-                            </p>
                         </div>
 
                         {/* Excerpt */}

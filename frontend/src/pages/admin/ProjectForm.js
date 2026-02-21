@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiSave, FiArrowLeft, FiX, FiPlus, FiImage } from 'react-icons/fi';
-import { projectsAPI, categoriesAPI, getImageUrl } from '../../services/api';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+import { FiSave, FiArrowLeft, FiX, FiPlus, FiImage, FiGrid, FiColumns } from 'react-icons/fi';
+import { projectsAPI, categoriesAPI, getImageUrl, BACKEND_URL } from '../../services/api';
 import Loading from '../../components/common/Loading';
+import { quillFormats, quillToolbar, attachImageDeleteHandler } from '../../config/quillConfig';
 
 const defaultCategories = [
     { value: 'web', label: '🌐 Web Development' },
@@ -16,10 +19,72 @@ const ProjectForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEdit = Boolean(id);
+    const quillRef = useRef(null);
 
     const [loading, setLoading] = useState(isEdit);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState(defaultCategories);
+
+    // Custom image handler: uploads to server, supports multi-select
+    const imageHandler = useCallback(() => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.setAttribute('multiple', 'true');
+        input.click();
+        input.onchange = async () => {
+            const files = Array.from(input.files);
+            if (!files.length) return;
+            const token = localStorage.getItem('token');
+            const uploadedUrls = [];
+
+            for (const file of files) {
+                const data = new FormData();
+                data.append('image', file);
+                try {
+                    const res = await fetch(`${BACKEND_URL}/api/upload/editor-image`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: data,
+                    });
+                    if (!res.ok) {
+                        console.error('Upload failed:', res.status);
+                        continue;
+                    }
+                    const json = await res.json();
+                    if (json.success && json.url) {
+                        uploadedUrls.push(`${BACKEND_URL}${json.url}`);
+                    }
+                } catch (err) {
+                    console.error('Editor image upload error:', err);
+                }
+            }
+
+            if (uploadedUrls.length === 0) {
+                alert('Image upload failed');
+                return;
+            }
+
+            const editor = quillRef.current?.getEditor?.() || quillRef.current?.editor;
+            if (!editor) return;
+
+            let insertAt = (editor.getSelection(true) || { index: editor.getLength() - 1 }).index;
+
+            // Insert each image one by one
+            for (const url of uploadedUrls) {
+                editor.insertEmbed(insertAt, 'image', url);
+                insertAt += 1;
+            }
+            editor.setSelection(insertAt);
+        };
+    }, []);
+
+    const quillModules = useMemo(() => ({
+        toolbar: {
+            container: quillToolbar,
+            handlers: { image: imageHandler }
+        }
+    }), [imageHandler]);
     const [formData, setFormData] = useState({
         title: '',
         shortDescription: '',
@@ -30,7 +95,8 @@ const ProjectForm = () => {
         techStack: [],
         category: 'web',
         status: 'completed',
-        featured: false
+        featured: false,
+        imageLayout: 'carousel'
     });
     const [techInput, setTechInput] = useState('');
     const [images, setImages] = useState([]);
@@ -69,7 +135,8 @@ const ProjectForm = () => {
                 techStack: project.techStack || [],
                 category: project.category || 'web',
                 status: project.status || 'completed',
-                featured: project.featured || false
+                featured: project.featured || false,
+                imageLayout: project.imageLayout || 'carousel'
             });
             setExistingImages(project.images || []);
         } catch (error) {
@@ -86,6 +153,18 @@ const ProjectForm = () => {
             fetchProject();
         }
     }, [isEdit, fetchProject]);
+
+    // Attach image delete handler to Quill editor
+    useEffect(() => {
+        let cleanup = () => { };
+        const timer = setTimeout(() => {
+            cleanup = attachImageDeleteHandler(quillRef) || (() => { });
+        }, 500);
+        return () => {
+            clearTimeout(timer);
+            cleanup();
+        };
+    }, [loading]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -121,8 +200,17 @@ const ProjectForm = () => {
         setImages(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleRemoveExistingImage = (index) => {
-        setExistingImages(prev => prev.filter((_, i) => i !== index));
+    const handleRemoveExistingImage = async (index) => {
+        const imagePath = existingImages[index];
+        if (!window.confirm('Are you sure you want to remove this image? This cannot be undone.')) return;
+
+        try {
+            await projectsAPI.removeImage(id, imagePath);
+            setExistingImages(prev => prev.filter((_, i) => i !== index));
+        } catch (error) {
+            console.error('Error removing image:', error);
+            alert('Failed to remove image');
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -131,7 +219,7 @@ const ProjectForm = () => {
 
         try {
             const data = new FormData();
-            
+
             // Append text fields
             Object.keys(formData).forEach(key => {
                 if (key === 'techStack') {
@@ -196,7 +284,7 @@ const ProjectForm = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="card p-6">
                         <h2 className="text-xl font-semibold text-white mb-6">Basic Information</h2>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="label">Project Title *</label>
@@ -226,14 +314,14 @@ const ProjectForm = () => {
 
                             <div>
                                 <label className="label">Full Description *</label>
-                                <textarea
-                                    name="description"
+                                <ReactQuill
+                                    ref={quillRef}
+                                    theme="snow"
                                     value={formData.description}
-                                    onChange={handleChange}
-                                    rows={8}
-                                    className="input-field resize-none"
-                                    placeholder="Detailed project description... (Supports basic HTML)"
-                                    required
+                                    onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+                                    modules={quillModules}
+                                    formats={quillFormats}
+                                    placeholder="Write detailed project description — add images, colors, different fonts..."
                                 />
                             </div>
 
@@ -286,7 +374,7 @@ const ProjectForm = () => {
                     {/* Links */}
                     <div className="card p-6">
                         <h2 className="text-xl font-semibold text-white mb-6">Links</h2>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="label">GitHub Repository</label>
@@ -329,7 +417,7 @@ const ProjectForm = () => {
                     {/* Tech Stack */}
                     <div className="card p-6">
                         <h2 className="text-xl font-semibold text-white mb-6">Tech Stack</h2>
-                        
+
                         <div className="flex gap-2 mb-4">
                             <input
                                 type="text"
@@ -369,8 +457,34 @@ const ProjectForm = () => {
 
                     {/* Images */}
                     <div className="card p-6">
-                        <h2 className="text-xl font-semibold text-white mb-6">Images</h2>
-                        
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-semibold text-white">Images</h2>
+
+                            {/* Layout Toggle */}
+                            <div className="flex items-center gap-1 bg-dark-200 rounded-lg p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, imageLayout: 'carousel' }))}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${formData.imageLayout === 'carousel'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-gray-400 hover:text-white'
+                                        }`}
+                                >
+                                    <FiColumns size={14} /> Carousel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, imageLayout: 'grid' }))}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${formData.imageLayout === 'grid'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-gray-400 hover:text-white'
+                                        }`}
+                                >
+                                    <FiGrid size={14} /> Grid
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Existing Images */}
                         {existingImages.length > 0 && (
                             <div className="mb-4">

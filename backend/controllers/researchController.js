@@ -11,7 +11,7 @@ exports.getResearch = async (req, res) => {
         if (type) query.type = type;
         if (featured) query.featured = featured === 'true';
 
-        const research = await Research.find(query).sort({ publicationDate: -1, createdAt: -1 });
+        const research = await Research.find(query).sort({ publicationDate: -1, createdAt: -1 }).lean();
 
         res.status(200).json({
             success: true,

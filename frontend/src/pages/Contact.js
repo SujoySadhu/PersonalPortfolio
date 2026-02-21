@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { FiMail, FiMapPin, FiPhone, FiSend, FiGithub, FiLinkedin, FiTwitter } from 'react-icons/fi';
+import { FiMail, FiMapPin, FiSend, FiGithub, FiLinkedin, FiTwitter, FiPhone } from 'react-icons/fi';
+import { useSettings } from '../context/SettingsContext';
+import { contactAPI } from '../services/api';
 
 const Contact = () => {
+    const { settings } = useSettings();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        phone: '',
         subject: '',
         message: ''
     });
@@ -18,55 +22,66 @@ const Contact = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        
-        // Simulate form submission (you can integrate with your backend or email service)
-        setTimeout(() => {
+        setStatus({ type: '', message: '' });
+
+        try {
+            const response = await contactAPI.submit(formData);
             setStatus({
                 type: 'success',
-                message: 'Thank you for your message! I will get back to you soon.'
+                message: response.data.message || 'Message sent successfully! Check your email for confirmation.'
             });
-            setFormData({ name: '', email: '', subject: '', message: '' });
+            setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+        } catch (error) {
+            setStatus({
+                type: 'error',
+                message: error.response?.data?.message || 'Failed to send message. Please try again or email directly.'
+            });
+        } finally {
             setLoading(false);
-        }, 1500);
+        }
     };
 
     const contactInfo = [
         {
             icon: FiMail,
             label: 'Email',
-            value: 'your@email.com',
-            link: 'mailto:your@email.com'
+            value: settings?.email || 'your@email.com',
+            link: settings?.email ? `mailto:${settings.email}` : 'mailto:your@email.com'
         },
+        ...(settings?.phone ? [{
+            icon: FiPhone,
+            label: 'Phone',
+            value: settings.phone,
+            link: `tel:${settings.phone}`
+        }] : []),
         {
             icon: FiMapPin,
             label: 'Location',
-            value: 'Your City, Country',
+            value: settings?.location || 'Your City, Country',
             link: null
-        },
-        {
-            icon: FiPhone,
-            label: 'Phone',
-            value: '+1 234 567 890',
-            link: 'tel:+1234567890'
         }
     ];
 
     const socialLinks = [
-        { icon: FiGithub, url: 'https://github.com', label: 'GitHub' },
-        { icon: FiLinkedin, url: 'https://linkedin.com', label: 'LinkedIn' },
-        { icon: FiTwitter, url: 'https://twitter.com', label: 'Twitter' }
+        ...(settings?.socialLinks?.github ? [{ icon: FiGithub, url: settings.socialLinks.github, label: 'GitHub' }] : [{ icon: FiGithub, url: 'https://github.com', label: 'GitHub' }]),
+        ...(settings?.socialLinks?.linkedin ? [{ icon: FiLinkedin, url: settings.socialLinks.linkedin, label: 'LinkedIn' }] : [{ icon: FiLinkedin, url: 'https://linkedin.com', label: 'LinkedIn' }]),
+        ...(settings?.socialLinks?.twitter ? [{ icon: FiTwitter, url: settings.socialLinks.twitter, label: 'Twitter' }] : [])
     ];
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4">
+        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+            {/* Decorative gradient orbs */}
+            <div className="contact-orb w-96 h-96 bg-blue-500 -top-20 -right-20 animate-float" />
+            <div className="contact-orb w-80 h-80 bg-violet-500 bottom-20 -left-20 animate-float-delay" />
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                        Get In <span className="gradient-text">Touch</span>
+                <div className="mb-12">
+                    <div className="section-ornament" />
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Get In Touch
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Have a question or want to work together? Feel free to reach out!
+                    <p className="text-gray-400 text-base">
+                        Have a question or want to work together? Feel free to reach out.
                     </p>
                 </div>
 
@@ -77,8 +92,8 @@ const Contact = () => {
                         {contactInfo.map((info, index) => (
                             <div key={index} className="card p-6">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-primary-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <info.icon className="text-primary-400" size={24} />
+                                    <div className="w-10 h-10 bg-gray-800/60 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <info.icon className="text-gray-400" size={20} />
                                     </div>
                                     <div>
                                         <h3 className="text-white font-medium mb-1">{info.label}</h3>
@@ -107,10 +122,10 @@ const Contact = () => {
                                         href={social.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center text-gray-400 hover:bg-primary-600 hover:text-white transition-all"
+                                        className="w-9 h-9 bg-gray-800/60 rounded-lg flex items-center justify-center text-gray-500 hover:text-white transition-colors"
                                         aria-label={social.label}
                                     >
-                                        <social.icon size={20} />
+                                        <social.icon size={18} />
                                     </a>
                                 ))}
                             </div>
@@ -123,11 +138,10 @@ const Contact = () => {
                             <h2 className="text-2xl font-bold text-white mb-6">Send a Message</h2>
 
                             {status.message && (
-                                <div className={`mb-6 p-4 rounded-lg ${
-                                    status.type === 'success' 
-                                        ? 'bg-green-500/20 text-green-400' 
-                                        : 'bg-red-500/20 text-red-400'
-                                }`}>
+                                <div className={`mb-6 p-4 rounded-lg ${status.type === 'success'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-red-500/20 text-red-400'
+                                    }`}>
                                     {status.message}
                                 </div>
                             )}
@@ -135,7 +149,7 @@ const Contact = () => {
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="label">Your Name</label>
+                                        <label className="label">Your Name *</label>
                                         <input
                                             type="text"
                                             name="name"
@@ -147,7 +161,7 @@ const Contact = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="label">Your Email</label>
+                                        <label className="label">Your Email *</label>
                                         <input
                                             type="email"
                                             name="email"
@@ -160,21 +174,34 @@ const Contact = () => {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="label">Subject</label>
-                                    <input
-                                        type="text"
-                                        name="subject"
-                                        value={formData.subject}
-                                        onChange={handleChange}
-                                        className="input-field"
-                                        placeholder="What's this about?"
-                                        required
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="label">Phone Number</label>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            className="input-field"
+                                            placeholder="+880 1XXX-XXXXXX"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label">Subject *</label>
+                                        <input
+                                            type="text"
+                                            name="subject"
+                                            value={formData.subject}
+                                            onChange={handleChange}
+                                            className="input-field"
+                                            placeholder="What's this about?"
+                                            required
+                                        />
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <label className="label">Message</label>
+                                    <label className="label">Message *</label>
                                     <textarea
                                         name="message"
                                         value={formData.message}
@@ -189,7 +216,7 @@ const Contact = () => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="btn-gradient w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                 >
                                     {loading ? (
                                         <>

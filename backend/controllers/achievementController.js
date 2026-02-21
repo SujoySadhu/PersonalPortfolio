@@ -13,7 +13,7 @@ exports.getAchievements = async (req, res) => {
         if (category) query.category = category;
         if (featured === 'true') query.featured = true;
 
-        const achievements = await Achievement.find(query).sort({ order: 1, date: -1 });
+        const achievements = await Achievement.find(query).sort({ order: 1, date: -1 }).lean();
 
         res.status(200).json({
             success: true,

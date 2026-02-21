@@ -12,11 +12,12 @@ const {
 } = require('../controllers/blogController');
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { cacheMiddleware } = require('../middleware/cache');
 
 // Public routes
-router.get('/', getBlogs);
-router.get('/tags', getTags);
-router.get('/:slug', getBlog);
+router.get('/', cacheMiddleware(120), getBlogs);
+router.get('/tags', cacheMiddleware(300), getTags);
+router.get('/:slug', cacheMiddleware(120), getBlog);
 
 // Protected routes (Admin only)
 router.post('/', protect, upload.single('coverImage'), createBlog);

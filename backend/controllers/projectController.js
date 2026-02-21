@@ -14,7 +14,11 @@ exports.getProjects = async (req, res) => {
         if (category) query.category = category;
         if (status) query.status = status;
 
-        const projects = await Project.find(query).sort({ order: 1, createdAt: -1 });
+        // Exclude full description from list queries — cards only need shortDescription
+        const projects = await Project.find(query)
+            .select('-description')
+            .sort({ order: 1, createdAt: -1 })
+            .lean();
 
         res.status(200).json({
             success: true,
@@ -34,7 +38,7 @@ exports.getProjects = async (req, res) => {
 // @access  Public
 exports.getProject = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await Project.findById(req.params.id).lean();
 
         if (!project) {
             return res.status(404).json({
@@ -93,7 +97,7 @@ exports.createProject = async (req, res) => {
 // @access  Private (Admin)
 exports.updateProject = async (req, res) => {
     try {
-        let project = await Project.findById(req.params.id);
+        const project = await Project.findById(req.params.id);
 
         if (!project) {
             return res.status(404).json({
@@ -102,29 +106,61 @@ exports.updateProject = async (req, res) => {
             });
         }
 
-        // Handle new uploaded files
+        // --- Handle images: merge kept existing images with new uploads ---
+        let updatedImages = [];
+
+        if (req.body.existingImages) {
+            // Parse the JSON array of image paths the user chose to keep
+            try {
+                const kept = JSON.parse(req.body.existingImages);
+                if (Array.isArray(kept)) {
+                    updatedImages = kept;
+                }
+            } catch (e) {
+                // If parsing fails, fall back to current DB images
+                updatedImages = project.images || [];
+            }
+        } else {
+            // No existingImages field sent — preserve current images
+            updatedImages = project.images || [];
+        }
+
+        // Append newly uploaded files
         if (req.files && req.files.length > 0) {
             const newImageUrls = req.files.map(file => `/uploads/${file.filename}`);
-            // Append new images to existing ones or replace
-            if (req.body.appendImages === 'true') {
-                req.body.images = [...project.images, ...newImageUrls];
-            } else {
-                req.body.images = newImageUrls;
-            }
-            if (!req.body.thumbnail && newImageUrls.length > 0) {
-                req.body.thumbnail = newImageUrls[0];
+            updatedImages = [...updatedImages, ...newImageUrls];
+        }
+
+        // --- Explicitly update each field (avoids multer/Express 5 body quirks) ---
+        if (req.body.title !== undefined) project.title = req.body.title;
+        if (req.body.description !== undefined) project.description = req.body.description;
+        if (req.body.shortDescription !== undefined) project.shortDescription = req.body.shortDescription;
+        if (req.body.youtubeLink !== undefined) project.youtubeLink = req.body.youtubeLink;
+        if (req.body.liveDemoLink !== undefined) project.liveDemoLink = req.body.liveDemoLink;
+        if (req.body.githubLink !== undefined) project.githubLink = req.body.githubLink;
+        if (req.body.category !== undefined) project.category = req.body.category;
+        if (req.body.status !== undefined) project.status = req.body.status;
+        if (req.body.order !== undefined) project.order = Number(req.body.order) || 0;
+
+        // Boolean from FormData arrives as string
+        if (req.body.featured !== undefined) {
+            project.featured = req.body.featured === 'true' || req.body.featured === true;
+        }
+
+        // Parse techStack
+        if (req.body.techStack !== undefined) {
+            if (typeof req.body.techStack === 'string') {
+                project.techStack = req.body.techStack.split(',').map(t => t.trim()).filter(Boolean);
+            } else if (Array.isArray(req.body.techStack)) {
+                project.techStack = req.body.techStack;
             }
         }
 
-        // Parse techStack if it's a string
-        if (typeof req.body.techStack === 'string') {
-            req.body.techStack = req.body.techStack.split(',').map(tech => tech.trim());
-        }
+        // Set images and thumbnail
+        project.images = updatedImages;
+        project.thumbnail = updatedImages.length > 0 ? updatedImages[0] : '';
 
-        project = await Project.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
-        });
+        await project.save();
 
         res.status(200).json({
             success: true,
@@ -167,6 +203,55 @@ exports.deleteProject = async (req, res) => {
         res.status(200).json({
             success: true,
             data: {}
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Remove a single image from a project
+// @route   PUT /api/projects/:id/remove-image
+// @access  Private (Admin)
+exports.removeImage = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+
+        if (!project) {
+            return res.status(404).json({
+                success: false,
+                message: 'Project not found'
+            });
+        }
+
+        const { imagePath } = req.body;
+
+        if (!imagePath) {
+            return res.status(400).json({
+                success: false,
+                message: 'imagePath is required'
+            });
+        }
+
+        // Remove the image from the array
+        project.images = project.images.filter(img => img !== imagePath);
+
+        // Update thumbnail if needed
+        project.thumbnail = project.images.length > 0 ? project.images[0] : '';
+
+        // Delete the physical file
+        const fullPath = path.join(__dirname, '..', imagePath);
+        if (fs.existsSync(fullPath)) {
+            fs.unlinkSync(fullPath);
+        }
+
+        await project.save();
+
+        res.status(200).json({
+            success: true,
+            data: project
         });
     } catch (error) {
         res.status(500).json({

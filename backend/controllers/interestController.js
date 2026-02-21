@@ -11,7 +11,7 @@ exports.getInterests = async (req, res) => {
         if (category) query.category = category;
         if (active === 'true') query.isActive = true;
 
-        const interests = await Interest.find(query).sort({ order: 1, createdAt: -1 });
+        const interests = await Interest.find(query).sort({ order: 1, createdAt: -1 }).lean();
 
         res.status(200).json({
             success: true,

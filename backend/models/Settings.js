@@ -50,6 +50,10 @@ const SettingsSchema = new mongoose.Schema({
     isAvailableForHire: {
         type: Boolean,
         default: true
+    },
+    enable2FA: {
+        type: Boolean,
+        default: true
     }
 }, {
     timestamps: true

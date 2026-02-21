@@ -10,7 +10,7 @@ exports.getSkills = async (req, res) => {
 
         if (category) query.category = category;
 
-        const skills = await Skill.find(query).sort({ category: 1, order: 1, name: 1 });
+        const skills = await Skill.find(query).sort({ category: 1, order: 1, name: 1 }).lean();
 
         // Group skills by category
         const groupedSkills = skills.reduce((acc, skill) => {

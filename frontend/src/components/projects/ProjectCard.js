@@ -1,167 +1,139 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FiGithub, FiArrowRight, FiPlay } from 'react-icons/fi';
+import { FiGithub, FiArrowRight, FiExternalLink } from 'react-icons/fi';
+
+const techMatch = (t, terms) => terms.some(term =>
+    term.length <= 2 ? t === term : (term.length === 3 ? (t === term || t.startsWith(term)) : t.includes(term))
+);
+
+const categorizeTech = (tech) => {
+    const t = tech.toLowerCase().trim();
+    if (techMatch(t, ['react', 'vue', 'vue.js', 'angular', 'svelte', 'next', 'nuxt', 'html', 'tailwind', 'bootstrap', 'typescript', 'javascript', 'jquery', 'redux', 'zustand', 'vite', 'webpack', 'gatsby', 'remix', 'sass', 'scss', 'css', 'material', 'chakra', 'framer', 'styled'])) return 'Frontend';
+    if (techMatch(t, ['node', 'express', 'django', 'flask', 'fastapi', 'spring', 'laravel', 'rails', 'nestjs', 'nest.js', 'graphql', 'socket.io', 'python', 'java', 'golang', 'rust', 'kotlin', 'scala', '.net', 'php', 'c++', 'c#', 'go', 'ruby', 'elixir', 'hapi', 'koa', 'strapi'])) return 'Backend';
+    if (techMatch(t, ['mongo', 'postgres', 'mysql', 'sqlite', 'redis', 'firebase', 'supabase', 'prisma', 'sequelize', 'dynamo', 'elastic', 'cassandra', 'neo4j', 'mariadb', 'mongoose'])) return 'Database';
+    if (techMatch(t, ['docker', 'kubernetes', 'heroku', 'vercel', 'netlify', 'nginx', 'jenkins', 'terraform', 'linux', 'render', 'cloudflare', 'postman', 'figma', 'jira', 'github', 'gitlab', 'aws', 'gcp', 'azure', 'railway', 'ci/cd'])) return 'DevOps';
+    return 'Tools';
+};
+
+const groupDot = {
+    Frontend: 'bg-blue-400',
+    Backend: 'bg-emerald-400',
+    Database: 'bg-violet-400',
+    DevOps: 'bg-amber-400',
+    Tools: 'bg-gray-400',
+};
+
+const groupLabel = {
+    Frontend: 'text-blue-400/70',
+    Backend: 'text-emerald-400/70',
+    Database: 'text-violet-400/70',
+    DevOps: 'text-amber-400/70',
+    Tools: 'text-gray-500',
+};
 
 const ProjectCard = ({ project }) => {
     const {
-        _id,
-        title,
-        shortDescription,
-        description,
-        techStack,
-        githubLink,
-        liveDemoLink
+        _id, title, shortDescription, description,
+        techStack, githubLink, liveDemoLink, status
     } = project;
 
-    // Categorize tech stack (basic categorization)
-    const categorizeTech = (techs) => {
-        if (!techs || techs.length === 0) return null;
-        
-        const frontendTechs = ['React', 'Next.js', 'NextJS', 'Vue', 'Angular', 'HTML', 'CSS', 'Tailwind', 'Bootstrap', 'JavaScript', 'TypeScript', 'Redux', 'Svelte'];
-        const backendTechs = ['Node.js', 'NodeJS', 'Express', 'Django', 'Flask', 'FastAPI', 'Spring', 'Java', 'Python', 'PHP', 'Laravel', 'Ruby', 'Rails', 'Go', 'Golang', 'Rust', 'NestJS'];
-        const databaseTechs = ['MongoDB', 'PostgreSQL', 'MySQL', 'SQLite', 'Redis', 'Firebase', 'Supabase', 'Prisma', 'Mongoose', 'SQL', 'DynamoDB', 'Cassandra'];
-
-        const categorized = {
-            frontend: [],
-            backend: [],
-            database: [],
-            other: []
-        };
-
-        techs.forEach(tech => {
-            const techLower = tech.toLowerCase();
-            if (frontendTechs.some(f => techLower.includes(f.toLowerCase()))) {
-                categorized.frontend.push(tech);
-            } else if (backendTechs.some(b => techLower.includes(b.toLowerCase()))) {
-                categorized.backend.push(tech);
-            } else if (databaseTechs.some(d => techLower.includes(d.toLowerCase()))) {
-                categorized.database.push(tech);
-            } else {
-                categorized.other.push(tech);
-            }
+    const groupedTech = useMemo(() => {
+        if (!techStack || techStack.length === 0) return null;
+        const groups = {};
+        techStack.forEach(tech => {
+            const cat = categorizeTech(tech);
+            (groups[cat] = groups[cat] || []).push(tech);
         });
-
-        return categorized;
-    };
-
-    const categorizedTech = categorizeTech(techStack);
-
-    // Split title for gradient effect on last word
-    const titleWords = title?.split(' ') || [];
-    const lastWord = titleWords.pop();
-    const firstWords = titleWords.join(' ');
+        return Object.entries(groups);
+    }, [techStack]);
 
     return (
-        <div className="bg-dark-200/50 rounded-xl border border-gray-800/50 p-4 sm:p-5 hover:border-gray-700 transition-all duration-300">
-            {/* Title with gradient on last word */}
-            <h3 className="text-lg font-bold text-white mb-2">
-                {firstWords && <span className="text-gray-300">{firstWords} </span>}
-                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">{lastWord}</span>
-            </h3>
+        <div className="group relative bg-dark-100 border border-gray-800/60 rounded-2xl h-full flex flex-col transition-all duration-300 hover:border-gray-600/80 hover:-translate-y-1.5 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+            {/* Top accent line - animates from center on hover */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-emerald-500 to-violet-500 rounded-t-2xl transition-all duration-500 origin-center scale-x-0 group-hover:scale-x-100" />
+            {/* Bottom glow on hover */}
+            <div className="absolute -bottom-1 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-blue-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-            {/* Description */}
-            <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-2">
-                {shortDescription || description?.substring(0, 120)}
-            </p>
-
-            {/* Action Buttons - Compact */}
-            <div className="flex flex-wrap gap-2 mb-4">
-                <Link
-                    to={`/projects/${_id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 text-white text-xs font-medium rounded-full hover:bg-gray-700 transition-colors"
-                >
-                    Read more <FiArrowRight className="w-3 h-3" />
-                </Link>
-                
-                {githubLink && (
-                    <a
-                        href={githubLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-700 text-gray-300 text-xs font-medium rounded-full hover:bg-gray-800 hover:text-white transition-colors"
-                    >
-                        <FiGithub className="w-3 h-3" /> Code
-                    </a>
-                )}
-                
-                {liveDemoLink && (
-                    <a
-                        href={liveDemoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-700 text-gray-300 text-xs font-medium rounded-full hover:bg-gray-800 hover:text-white transition-colors"
-                    >
-                        <FiPlay className="w-3 h-3" /> Demo
-                    </a>
-                )}
-            </div>
-
-            {/* Tech Stack Section - Compact */}
-            {techStack && techStack.length > 0 && (
-                <div>
-                    <h4 className="text-xs uppercase tracking-wider text-gray-500 mb-2 font-semibold">Tech Stack</h4>
-                    
-                    <div className="space-y-2">
-                        {/* Frontend */}
-                        {categorizedTech?.frontend?.length > 0 && (
-                            <div className="bg-dark-300/50 rounded-lg p-2.5 border border-gray-800/50">
-                                <span className="text-xs font-medium text-white mb-1.5 block">Frontend</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {categorizedTech.frontend.map((tech, index) => (
-                                        <span key={index} className="px-2 py-0.5 bg-dark-200 text-gray-300 rounded-full text-xs">
-                                            {tech}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Backend */}
-                        {categorizedTech?.backend?.length > 0 && (
-                            <div className="bg-dark-300/50 rounded-lg p-2.5 border border-gray-800/50">
-                                <span className="text-xs font-medium text-white mb-1.5 block">Backend</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {categorizedTech.backend.map((tech, index) => (
-                                        <span key={index} className="px-2 py-0.5 bg-dark-200 text-gray-300 rounded-full text-xs">
-                                            {tech}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Database */}
-                        {categorizedTech?.database?.length > 0 && (
-                            <div className="bg-dark-300/50 rounded-lg p-2.5 border border-gray-800/50">
-                                <span className="text-xs font-medium text-white mb-1.5 block">Database</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {categorizedTech.database.map((tech, index) => (
-                                        <span key={index} className="px-2 py-0.5 bg-dark-200 text-gray-300 rounded-full text-xs">
-                                            {tech}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Other/Tools */}
-                        {categorizedTech?.other?.length > 0 && (
-                            <div className="bg-dark-300/50 rounded-lg p-2.5 border border-gray-800/50">
-                                <span className="text-xs font-medium text-white mb-1.5 block">Tools</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {categorizedTech.other.map((tech, index) => (
-                                        <span key={index} className="px-2 py-0.5 bg-dark-200 text-gray-300 rounded-full text-xs">
-                                            {tech}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+            <div className="p-6 flex flex-col flex-1">
+                {/* Header: Title + Status */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-lg font-bold text-white leading-snug group-hover:text-blue-300 transition-colors duration-200">
+                        {title}
+                    </h3>
+                    {status && (
+                        <span className={`flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${status === 'completed'
+                            ? 'bg-emerald-500/10 text-emerald-400'
+                            : status === 'in-progress'
+                                ? 'bg-amber-500/10 text-amber-400'
+                                : 'bg-gray-500/10 text-gray-400'
+                            }`}>
+                            {status.replace('-', ' ')}
+                        </span>
+                    )}
                 </div>
-            )}
+
+                {/* Description */}
+                <p className="text-gray-400 text-sm leading-relaxed line-clamp-3 mb-5">
+                    {shortDescription || description?.replace(/<[^>]+>/g, '').substring(0, 150)}
+                </p>
+
+                {/* Tech Stack - compact grouped */}
+                {groupedTech && groupedTech.length > 0 && (
+                    <div className="mb-5 space-y-2.5">
+                        {groupedTech.map(([group, techs]) => (
+                            <div key={group} className="flex items-start gap-2">
+                                <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                                    <span className={`w-1.5 h-1.5 rounded-full ${groupDot[group]}`} />
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${groupLabel[group]} w-16`}>
+                                        {group}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {techs.map((tech, i) => (
+                                        <span key={i} className="text-[11px] text-gray-300 bg-dark-200/80 border border-gray-700/40 px-2 py-0.5 rounded">
+                                            {tech}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Action Buttons - pushed to bottom */}
+                <div className="flex flex-wrap items-center gap-2.5 mt-auto pt-4 border-t border-gray-800/40">
+                    <Link
+                        to={`/projects/${_id}`}
+                        className="inline-flex items-center gap-1.5 px-5 py-2 bg-white text-dark-200 text-sm font-semibold rounded-full hover:bg-gray-100 hover:shadow-lg hover:shadow-white/10 transition-all duration-200 active:scale-95"
+                    >
+                        View Details <FiArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                    {githubLink && (
+                        <a
+                            href={githubLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-700 text-gray-300 text-sm font-medium rounded-full hover:border-gray-500 hover:text-white hover:bg-gray-800/50 transition-all duration-200 active:scale-95"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <FiGithub size={14} /> Code
+                        </a>
+                    )}
+                    {liveDemoLink && (
+                        <a
+                            href={liveDemoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-700 text-gray-300 text-sm font-medium rounded-full hover:border-gray-500 hover:text-white hover:bg-gray-800/50 transition-all duration-200 active:scale-95"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <FiExternalLink size={14} /> Demo
+                        </a>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
 
-export default ProjectCard;
+export default React.memo(ProjectCard);

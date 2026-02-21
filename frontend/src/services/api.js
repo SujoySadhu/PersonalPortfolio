@@ -23,13 +23,29 @@ import axios from 'axios';
 // ============================================
 // ENVIRONMENT CONFIGURATION
 // ============================================
-// These values automatically switch between development and production
-// based on the .env and .env.production files
-// In development: Uses localhost:5000
-// In production: Uses the deployed backend URL
-
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+// ============================================
+// IN-MEMORY RESPONSE CACHE
+// ============================================
+const apiCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const getCached = (key) => {
+    const entry = apiCache.get(key);
+    if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+        return entry.data;
+    }
+    apiCache.delete(key);
+    return null;
+};
+
+const setCache = (key, data) => {
+    apiCache.set(key, { data, timestamp: Date.now() });
+};
+
+export const clearApiCache = () => apiCache.clear();
 
 // ============================================
 // IMAGE URL HELPER
@@ -119,6 +135,10 @@ api.interceptors.response.use(
  */
 export const authAPI = {
     login: (credentials) => api.post('/auth/login', credentials),
+    verify2FA: (data) => api.post('/auth/verify-2fa', data),
+    resend2FA: (data) => api.post('/auth/resend-2fa', data),
+    forgotPassword: (data) => api.post('/auth/forgot-password', data),
+    resetPassword: (data) => api.post('/auth/reset-password', data),
     register: (userData) => api.post('/auth/register', userData),
     getMe: () => api.get('/auth/me'),
     updateDetails: (data) => api.put('/auth/updatedetails', data),
@@ -133,16 +153,27 @@ export const authAPI = {
  * Supports file uploads for project images/thumbnails
  */
 export const projectsAPI = {
-    getAll: (params) => api.get('/projects', { params }),
-    getOne: (id) => api.get(`/projects/${id}`),
-    create: (data) => api.post('/projects', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-    update: (id, data) => api.put(`/projects/${id}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-    delete: (id) => api.delete(`/projects/${id}`),
-    toggleFeatured: (id) => api.put(`/projects/${id}/featured`)
+    getAll: async (params) => {
+        const cacheKey = 'projects_' + JSON.stringify(params || {});
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        const response = await api.get('/projects', { params });
+        setCache(cacheKey, response);
+        return response;
+    },
+    getOne: async (id) => {
+        const cacheKey = 'project_' + id;
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        const response = await api.get(`/projects/${id}`);
+        setCache(cacheKey, response);
+        return response;
+    },
+    create: (data) => { clearApiCache(); return api.post('/projects', data, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+    update: (id, data) => { clearApiCache(); return api.put(`/projects/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+    delete: (id) => { clearApiCache(); return api.delete(`/projects/${id}`); },
+    toggleFeatured: (id) => { clearApiCache(); return api.put(`/projects/${id}/featured`); },
+    removeImage: (id, imagePath) => { clearApiCache(); return api.put(`/projects/${id}/remove-image`, { imagePath }); }
 };
 
 // ============================================
@@ -237,18 +268,35 @@ export const categoriesAPI = {
  * Supports cover image uploads and tag management
  */
 export const blogsAPI = {
-    getAll: (params) => api.get('/blogs', { params }),
-    getOne: (slug) => api.get(`/blogs/${slug}`),
-    getTags: () => api.get('/blogs/tags'),
-    create: (data) => api.post('/blogs', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-    update: (id, data) => api.put(`/blogs/${id}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-    delete: (id) => api.delete(`/blogs/${id}`),
-    togglePublish: (id) => api.put(`/blogs/${id}/publish`),
-    toggleFeatured: (id) => api.put(`/blogs/${id}/featured`)
+    getAll: async (params) => {
+        const cacheKey = 'blogs_' + JSON.stringify(params || {});
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        const response = await api.get('/blogs', { params });
+        setCache(cacheKey, response);
+        return response;
+    },
+    getOne: async (slug) => {
+        const cacheKey = 'blog_' + slug;
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        const response = await api.get(`/blogs/${slug}`);
+        setCache(cacheKey, response);
+        return response;
+    },
+    getTags: async () => {
+        const cacheKey = 'blog_tags';
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+        const response = await api.get('/blogs/tags');
+        setCache(cacheKey, response);
+        return response;
+    },
+    create: (data) => { clearApiCache(); return api.post('/blogs', data, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+    update: (id, data) => { clearApiCache(); return api.put(`/blogs/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+    delete: (id) => { clearApiCache(); return api.delete(`/blogs/${id}`); },
+    togglePublish: (id) => { clearApiCache(); return api.put(`/blogs/${id}/publish`); },
+    toggleFeatured: (id) => { clearApiCache(); return api.put(`/blogs/${id}/featured`); }
 };
 
 // ============================================
@@ -293,7 +341,41 @@ export const currentWorkAPI = {
 };
 
 // ============================================
+// PUBLIC COMBINED API (Performance Optimized)
+// ============================================
+/**
+ * Single endpoint that returns all home page data at once.
+ * Reduces 8 API calls to 1, with in-memory caching.
+ */
+export const publicAPI = {
+    getHomeData: async () => {
+        const cacheKey = 'public_home';
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+
+        const response = await api.get('/public/home');
+        setCache(cacheKey, response);
+        return response;
+    },
+    getSettings: async () => {
+        const cacheKey = 'public_settings';
+        const cached = getCached(cacheKey);
+        if (cached) return cached;
+
+        const response = await api.get('/public/settings');
+        setCache(cacheKey, response);
+        return response;
+    }
+};
+
+// ============================================
+// CONTACT API
+// ============================================
+export const contactAPI = {
+    submit: (data) => api.post('/contact', data),
+};
+
+// ============================================
 // DEFAULT EXPORT
 // ============================================
-// Export the configured axios instance for custom API calls
 export default api;

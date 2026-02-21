@@ -15,7 +15,7 @@ exports.getCurrentWorks = async (req, res) => {
         if (featured === 'true') query.isFeatured = true;
 
         const currentWorks = await CurrentWork.find(query)
-            .sort({ isFeatured: -1, order: 1, createdAt: -1 });
+            .sort({ isFeatured: -1, order: 1, createdAt: -1 }).lean();
 
         res.status(200).json({
             success: true,

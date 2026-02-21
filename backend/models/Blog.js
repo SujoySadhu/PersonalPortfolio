@@ -88,7 +88,7 @@ blogSchema.pre('save', function(next) {
 // Index for search and filtering
 blogSchema.index({ title: 'text', content: 'text', tags: 'text' });
 blogSchema.index({ published: 1, createdAt: -1 });
-blogSchema.index({ slug: 1 });
+// slug index is already created by `unique: true` — no duplicate needed
 blogSchema.index({ category: 1 });
 
 module.exports = mongoose.model('Blog', blogSchema);

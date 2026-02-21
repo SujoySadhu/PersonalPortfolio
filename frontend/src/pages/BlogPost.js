@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiCalendar, FiClock, FiEye, FiTag, FiArrowLeft, FiShare2 } from 'react-icons/fi';
 import { FaFacebook, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { blogsAPI, getImageUrl } from '../services/api';
+import { processContentImages } from '../config/processContentImages';
 import Spinner from '../components/common/Spinner';
 
 const BlogPost = () => {
@@ -80,8 +81,8 @@ const BlogPost = () => {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Post not found</h2>
-                    <Link to="/blog" className="text-primary-600 hover:text-primary-700">
+                    <h2 className="text-2xl font-bold text-white mb-4">Post not found</h2>
+                    <Link to="/blog" className="text-gray-400 hover:text-white transition-colors">
                         ← Back to Blog
                     </Link>
                 </div>
@@ -90,169 +91,161 @@ const BlogPost = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-20">
-            {/* Hero Section */}
-            <div className="relative">
-                {blog.coverImage ? (
-                    <div className="h-96 md:h-[500px] relative">
+        <div className="min-h-screen pt-24 pb-12">
+            <div className="max-w-3xl mx-auto px-6 lg:px-12">
+                {/* Back link */}
+                <Link 
+                    to="/blog"
+                    className="inline-flex items-center gap-2 text-gray-500 hover:text-white mb-8 transition-colors text-sm"
+                >
+                    <FiArrowLeft size={14} />
+                    Back to Blog
+                </Link>
+
+                {/* Header */}
+                <div className="mb-8">
+                    {blog.category && (
+                        <span className="inline-block px-2 py-1 bg-gray-800/60 text-gray-400 text-xs rounded mb-4">
+                            {blog.category}
+                        </span>
+                    )}
+                    
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+                        {blog.title}
+                    </h1>
+                    
+                    <div className="flex flex-wrap items-center gap-4 text-gray-400 text-sm">
+                        {blog.author && (
+                            <span className="text-gray-400">
+                                {blog.author}
+                            </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                            <FiCalendar className="w-3.5 h-3.5" />
+                            {formatDate(blog.createdAt)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <FiClock className="w-3.5 h-3.5" />
+                            {blog.readTime} min read
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <FiEye className="w-3.5 h-3.5" />
+                            {blog.views} views
+                        </span>
+                    </div>
+                </div>
+
+                {/* Cover Image */}
+                {blog.coverImage && (
+                    <div className="rounded-2xl overflow-hidden mb-8">
                         <img
                             src={getImageUrl(blog.coverImage)}
                             alt={blog.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                     </div>
-                ) : (
-                    <div className="h-64 md:h-80 bg-gradient-to-br from-primary-600 to-primary-800" />
                 )}
-                
-                <div className="container mx-auto px-4 relative -mt-32 md:-mt-40">
-                    <div className="max-w-4xl mx-auto">
-                        <Link 
-                            to="/blog"
-                            className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
-                        >
-                            <FiArrowLeft />
-                            Back to Blog
-                        </Link>
-                        
-                        {blog.category && (
-                            <span className="inline-block px-3 py-1 bg-primary-600 text-white text-sm font-medium rounded-full mb-4">
-                                {blog.category}
-                            </span>
-                        )}
-                        
-                        <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                            {blog.title}
-                        </h1>
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-white/80">
-                            {blog.author && (
-                                <span className="font-medium text-white">
-                                    By {blog.author}
-                                </span>
-                            )}
-                            <span className="flex items-center gap-1">
-                                <FiCalendar className="w-4 h-4" />
-                                {formatDate(blog.createdAt)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <FiClock className="w-4 h-4" />
-                                {blog.readTime} min read
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <FiEye className="w-4 h-4" />
-                                {blog.views} views
-                            </span>
+
+                {/* Tags */}
+                {blog.tags && blog.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-8 pb-8 border-b border-gray-800/60">
+                        {blog.tags.map((tag, index) => (
+                            <Link
+                                key={index}
+                                to={`/blog?tag=${tag}`}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-gray-800/60 text-gray-400 rounded text-xs hover:text-white transition-colors"
+                            >
+                                <FiTag className="w-3 h-3" />
+                                {tag}
+                            </Link>
+                        ))}
+                    </div>
+                )}
+
+                {/* Blog Content */}
+                <div 
+                    className="prose-details"
+                    dangerouslySetInnerHTML={{ __html: processContentImages(blog.content) }}
+                />
+
+                {/* Share Section */}
+                <div className="mt-12 pt-8 border-t border-gray-800/60">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <FiShare2 className="w-4 h-4" />
+                            <span>Share this article</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <a
+                                href={shareLinks.facebook}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-9 h-9 bg-gray-800/60 text-gray-500 rounded-lg flex items-center justify-center hover:text-white transition-colors"
+                                aria-label="Share on Facebook"
+                            >
+                                <FaFacebook className="w-4 h-4" />
+                            </a>
+                            <a
+                                href={shareLinks.twitter}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-9 h-9 bg-gray-800/60 text-gray-500 rounded-lg flex items-center justify-center hover:text-white transition-colors"
+                                aria-label="Share on Twitter"
+                            >
+                                <FaTwitter className="w-4 h-4" />
+                            </a>
+                            <a
+                                href={shareLinks.linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-9 h-9 bg-gray-800/60 text-gray-500 rounded-lg flex items-center justify-center hover:text-white transition-colors"
+                                aria-label="Share on LinkedIn"
+                            >
+                                <FaLinkedin className="w-4 h-4" />
+                            </a>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="container mx-auto px-4 py-12">
-                <div className="max-w-4xl mx-auto">
-                    <div className="bg-white rounded-xl shadow-lg p-8 md:p-12">
-                        {/* Tags */}
-                        {blog.tags && blog.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-8 pb-8 border-b border-gray-100">
-                                {blog.tags.map((tag, index) => (
-                                    <Link
-                                        key={index}
-                                        to={`/blog?tag=${tag}`}
-                                        className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-primary-100 hover:text-primary-700 transition-colors"
-                                    >
-                                        <FiTag className="w-3 h-3" />
-                                        {tag}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Blog Content */}
-                        <div 
-                            className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-primary-600 prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900"
-                            dangerouslySetInnerHTML={{ __html: blog.content }}
-                        />
-
-                        {/* Share Section */}
-                        <div className="mt-12 pt-8 border-t border-gray-200">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div className="flex items-center gap-2 text-gray-600">
-                                    <FiShare2 className="w-5 h-5" />
-                                    <span className="font-medium">Share this article</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <a
-                                        href={shareLinks.facebook}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
-                                        aria-label="Share on Facebook"
-                                    >
-                                        <FaFacebook className="w-5 h-5" />
-                                    </a>
-                                    <a
-                                        href={shareLinks.twitter}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-3 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-colors"
-                                        aria-label="Share on Twitter"
-                                    >
-                                        <FaTwitter className="w-5 h-5" />
-                                    </a>
-                                    <a
-                                        href={shareLinks.linkedin}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-3 bg-blue-700 text-white rounded-full hover:bg-blue-800 transition-colors"
-                                        aria-label="Share on LinkedIn"
-                                    >
-                                        <FaLinkedin className="w-5 h-5" />
-                                    </a>
-                                </div>
-                            </div>
+                {/* Related Posts */}
+                {relatedBlogs.length > 0 && (
+                    <div className="mt-12 pt-8 border-t border-gray-800/60">
+                        <h2 className="text-lg font-semibold text-white mb-6">Related Articles</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {relatedBlogs.map((relatedBlog) => (
+                                <Link
+                                    key={relatedBlog._id}
+                                    to={`/blog/${relatedBlog.slug}`}
+                                    className="bg-dark-100 rounded-xl overflow-hidden border border-gray-800/60 hover:border-gray-700 transition-colors group"
+                                >
+                                    <div className="aspect-video overflow-hidden">
+                                        {relatedBlog.coverImage ? (
+                                            <img
+                                                src={getImageUrl(relatedBlog.coverImage)}
+                                                alt={relatedBlog.title}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-dark-200 flex items-center justify-center">
+                                                <span className="text-2xl text-gray-700">📝</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="font-medium text-white text-sm group-hover:text-gray-300 transition-colors line-clamp-2">
+                                            {relatedBlog.title}
+                                        </h3>
+                                        <p className="text-xs text-gray-600 mt-2">
+                                            {formatDate(relatedBlog.createdAt)}
+                                        </p>
+                                    </div>
+                                </Link>
+                            ))}
                         </div>
                     </div>
-
-                    {/* Related Posts */}
-                    {relatedBlogs.length > 0 && (
-                        <div className="mt-12">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Articles</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {relatedBlogs.map((relatedBlog) => (
-                                    <Link
-                                        key={relatedBlog._id}
-                                        to={`/blog/${relatedBlog.slug}`}
-                                        className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow group"
-                                    >
-                                        <div className="aspect-video overflow-hidden">
-                                            {relatedBlog.coverImage ? (
-                                                <img
-                                                    src={getImageUrl(relatedBlog.coverImage)}
-                                                    alt={relatedBlog.title}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                                    <span className="text-3xl text-gray-400">📝</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2">
-                                                {relatedBlog.title}
-                                            </h3>
-                                            <p className="text-sm text-gray-500 mt-2">
-                                                {formatDate(relatedBlog.createdAt)}
-                                            </p>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
         </div>
     );

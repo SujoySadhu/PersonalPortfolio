@@ -1,34 +1,12 @@
-/**
- * ============================================
- * USER MODEL - Admin Authentication Schema
- * ============================================
- * 
- * Defines the schema for admin users who can access the dashboard.
- * Includes password hashing and verification methods.
- * 
- * Features:
- * - Automatic password hashing on save
- * - Password comparison method for authentication
- * - Email validation with regex pattern
- * - Role-based access (currently only 'admin' role)
- * 
- * @author Portfolio Admin
- */
-
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// ============================================
-// SCHEMA DEFINITION
-// ============================================
 const UserSchema = new mongoose.Schema({
-    // User's display name
     name: {
         type: String,
         required: [true, 'Please provide a name'],
         trim: true
     },
-    // Login email (must be unique)
     email: {
         type: String,
         required: [true, 'Please provide an email'],
@@ -36,55 +14,43 @@ const UserSchema = new mongoose.Schema({
         lowercase: true,
         match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
     },
-    // Hashed password (excluded from queries by default for security)
     password: {
         type: String,
         required: [true, 'Please provide a password'],
         minlength: 6,
-        select: false  // Security: Don't return password in queries by default
+        select: false
     },
-    // User role for authorization
     role: {
         type: String,
         enum: ['admin'],
         default: 'admin'
     },
-    // Timestamp of account creation
-    createdAt: {
+    twoFactorCode: {
+        type: String,
+        select: false
+    },
+    twoFactorExpires: {
         type: Date,
-        default: Date.now
-    }
+        select: false
+    },
+    resetPasswordToken: {
+        type: String,
+        select: false
+    },
+    resetPasswordExpires: {
+        type: Date,
+        select: false
+    },
+    createdAt: { type: Date, default: Date.now }
 });
 
-// ============================================
-// MIDDLEWARE: Password Hashing
-// ============================================
-/**
- * Pre-save hook to automatically hash password
- * Only runs when password field is modified
- * Uses bcrypt with salt rounds of 10
- */
-UserSchema.pre('save', async function(next) {
-    // Skip hashing if password wasn't modified
-    if (!this.isModified('password')) {
-        next();
-    }
-    // Generate salt and hash the password
+UserSchema.pre('save', async function () {
+    if (!this.isModified('password')) return;
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
 
-// ============================================
-// INSTANCE METHODS
-// ============================================
-/**
- * Compare entered password with stored hashed password
- * Used during login authentication
- * 
- * @param {string} enteredPassword - Plain text password to verify
- * @returns {boolean} True if passwords match, false otherwise
- */
-UserSchema.methods.matchPassword = async function(enteredPassword) {
+UserSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 

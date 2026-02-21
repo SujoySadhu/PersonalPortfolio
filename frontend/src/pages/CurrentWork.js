@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiCode, FiClock, FiCalendar, FiExternalLink } from 'react-icons/fi';
+import { FiClock, FiCalendar, FiExternalLink } from 'react-icons/fi';
 import { currentWorkAPI, getImageUrl } from '../services/api';
 import Spinner from '../components/common/Spinner';
 
@@ -52,30 +52,27 @@ const CurrentWork = () => {
 
     return (
         <div className="min-h-screen bg-dark-200 pt-24 pb-12">
-            <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto px-6 lg:px-12">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                        <FiCode className="w-8 h-8 text-primary-400" />
-                        <h1 className="text-4xl md:text-5xl font-bold text-white">
-                            Currently Working On
-                        </h1>
-                    </div>
-                    <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+                <div className="mb-12">
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Currently Working On
+                    </h1>
+                    <p className="text-gray-400 text-base">
                         Projects, learning goals, and initiatives I'm actively pursuing
                     </p>
                 </div>
 
                 {/* Type Filter */}
-                <div className="flex flex-wrap justify-center gap-3 mb-10">
+                <div className="flex flex-wrap gap-2 mb-10">
                     {typeOptions.map((type) => (
                         <button
                             key={type.value}
                             onClick={() => setSelectedType(type.value)}
-                            className={`px-4 py-2 rounded-full font-medium transition-all ${
+                            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                                 selectedType === type.value
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-dark-100 text-gray-400 hover:bg-dark-300 hover:text-white'
+                                    ? 'bg-gray-800 text-white'
+                                    : 'text-gray-500 hover:text-white'
                             }`}
                         >
                             {type.icon} {type.label}
@@ -102,8 +99,8 @@ const CurrentWork = () => {
                             <div
                                 key={work._id}
                                 className={`bg-dark-100 rounded-xl overflow-hidden border ${
-                                    work.isFeatured ? 'border-primary-500' : 'border-gray-800'
-                                } hover:border-primary-500/50 transition-all duration-300`}
+                                    work.isFeatured ? 'border-gray-700' : 'border-gray-800/60'
+                                } hover:border-gray-700 transition-colors`}
                             >
                                 <div className="md:flex">
                                     {work.image && (
@@ -147,7 +144,7 @@ const CurrentWork = () => {
                                             </div>
                                         </div>
 
-                                        <p className="text-gray-400 mb-4 leading-relaxed">
+                                        <p className="text-gray-300 mb-4 leading-relaxed">
                                             {work.description}
                                         </p>
 
@@ -192,7 +189,7 @@ const CurrentWork = () => {
                                                         href={link.url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 px-3 py-1 bg-primary-600/20 text-primary-400 rounded-full text-sm hover:bg-primary-600 hover:text-white transition-colors"
+                                                        className="inline-flex items-center gap-1 px-3 py-1 bg-gray-800/60 text-gray-400 rounded-full text-sm hover:text-white transition-colors"
                                                     >
                                                         <FiExternalLink className="w-3 h-3" />
                                                         {link.title}

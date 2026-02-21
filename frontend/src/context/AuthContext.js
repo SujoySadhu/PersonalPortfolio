@@ -38,7 +38,20 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const response = await authAPI.login({ email, password });
-            const { token, user } = response.data;
+            const data = response.data;
+
+            // If 2FA is required, return the tempUserId for the verification step
+            if (data.requires2FA) {
+                return {
+                    success: true,
+                    requires2FA: true,
+                    tempUserId: data.tempUserId,
+                    message: data.message
+                };
+            }
+
+            // Direct login (2FA disabled)
+            const { token, user } = data;
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
@@ -47,6 +60,31 @@ export const AuthProvider = ({ children }) => {
             const message = err.response?.data?.message || 'Login failed';
             setError(message);
             return { success: false, error: message };
+        }
+    };
+
+    const verify2FA = async (userId, code) => {
+        try {
+            setError(null);
+            const response = await authAPI.verify2FA({ userId, code });
+            const { token, user } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            setUser(user);
+            return { success: true };
+        } catch (err) {
+            const message = err.response?.data?.message || 'Verification failed';
+            setError(message);
+            return { success: false, error: message };
+        }
+    };
+
+    const resend2FA = async (userId) => {
+        try {
+            const response = await authAPI.resend2FA({ userId });
+            return { success: true, message: response.data.message };
+        } catch (err) {
+            return { success: false, error: err.response?.data?.message || 'Failed to resend code' };
         }
     };
 
@@ -77,6 +115,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         login,
+        verify2FA,
+        resend2FA,
         register,
         logout,
         isAuthenticated: !!user

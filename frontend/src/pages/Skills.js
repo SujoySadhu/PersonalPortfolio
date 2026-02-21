@@ -2,14 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { skillsAPI, categoriesAPI } from '../services/api';
 import SkillCard from '../components/skills/SkillCard';
 import Loading from '../components/common/Loading';
+import {
+    FiCode, FiDatabase, FiServer, FiTool,
+    FiLayers, FiTerminal, FiGlobe, FiCpu
+} from 'react-icons/fi';
+
+const categoryIconMap = {
+    frontend: FiGlobe,
+    backend: FiServer,
+    database: FiDatabase,
+    devops: FiTerminal,
+    tools: FiTool,
+    languages: FiCode,
+    frameworks: FiLayers,
+    'ai-ml': FiCpu,
+    other: FiCpu,
+};
+
+const categoryColorMap = {
+    frontend: 'text-blue-400 bg-blue-500/10',
+    backend: 'text-emerald-400 bg-emerald-500/10',
+    database: 'text-violet-400 bg-violet-500/10',
+    devops: 'text-orange-400 bg-orange-500/10',
+    tools: 'text-cyan-400 bg-cyan-500/10',
+    languages: 'text-indigo-400 bg-indigo-500/10',
+    frameworks: 'text-teal-400 bg-teal-500/10',
+    'ai-ml': 'text-pink-400 bg-pink-500/10',
+    other: 'text-gray-400 bg-gray-500/10',
+};
 
 const Skills = () => {
     const [skills, setSkills] = useState({});
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('all');
-    const [categories, setCategories] = useState(['all', 'frontend', 'backend', 'database', 'devops', 'tools', 'languages', 'frameworks', 'other']);
     const [categoryLabels, setCategoryLabels] = useState({
-        all: 'All Skills',
         frontend: 'Frontend',
         backend: 'Backend',
         database: 'Database',
@@ -17,6 +42,7 @@ const Skills = () => {
         tools: 'Tools',
         languages: 'Languages',
         frameworks: 'Frameworks',
+        'ai-ml': 'AI / ML',
         other: 'Other'
     });
 
@@ -29,16 +55,12 @@ const Skills = () => {
         try {
             const response = await categoriesAPI.getBySection('skill');
             if (response.data.data && response.data.data.length > 0) {
-                const cats = ['all', ...response.data.data.map(cat => 
-                    cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-')
-                )];
-                const labels = { all: 'All Skills' };
+                const labels = {};
                 response.data.data.forEach(cat => {
                     const key = cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-');
-                    labels[key] = `${cat.icon || ''} ${cat.name}`.trim();
+                    labels[key] = cat.name;
                 });
-                setCategories(cats);
-                setCategoryLabels(labels);
+                setCategoryLabels(prev => ({ ...prev, ...labels }));
             }
         } catch (err) {
             console.log('Using default categories');
@@ -56,72 +78,63 @@ const Skills = () => {
         }
     };
 
-    const getFilteredSkills = () => {
-        if (activeTab === 'all') {
-            return Object.values(skills).flat();
-        }
-        return skills[activeTab] || [];
-    };
+    const totalSkills = Object.values(skills).flat().length;
+    const categoryEntries = Object.entries(skills).filter(([, list]) => list.length > 0);
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                        Skills & <span className="gradient-text">Technologies</span>
+                <div className="mb-10">
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Skills & Technologies
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        A comprehensive overview of my technical skills and expertise across various domains.
+                    <p className="text-gray-400 text-base">
+                        A comprehensive overview of my technical skills and expertise.
                     </p>
+                    {!loading && totalSkills > 0 && (
+                        <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
+                            <span>{totalSkills} skills</span>
+                            <span>·</span>
+                            <span>{categoryEntries.length} categories</span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="flex flex-wrap justify-center gap-2 mb-12">
-                    {categories.map((category) => (
-                        <button
-                            key={category}
-                            onClick={() => setActiveTab(category)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                activeTab === category
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-dark-100 text-gray-400 hover:bg-gray-700 hover:text-white'
-                            }`}
-                        >
-                            {categoryLabels[category] || category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Skills Grid */}
+                {/* Skills by Category */}
                 {loading ? (
                     <Loading text="Loading skills..." />
-                ) : getFilteredSkills().length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {getFilteredSkills().map((skill) => (
-                            <SkillCard key={skill._id} skill={skill} />
-                        ))}
+                ) : categoryEntries.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {categoryEntries.map(([category, categorySkills]) => {
+                            const Icon = categoryIconMap[category] || FiCode;
+                            const colorClasses = categoryColorMap[category] || 'text-gray-400 bg-gray-500/10';
+                            const label = categoryLabels[category] || category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                            return (
+                                <div key={category} className="bg-dark-100 border border-gray-800/60 rounded-2xl p-5 hover:border-gray-700 transition-colors">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${colorClasses}`}>
+                                            <Icon size={16} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-semibold text-sm">{label}</h3>
+                                            <span className="text-gray-500 text-xs">{categorySkills.length} skills</span>
+                                        </div>
+                                    </div>
+                                    <div className="divide-y divide-gray-800/40">
+                                        {categorySkills.map(skill => (
+                                            <SkillCard key={skill._id} skill={skill} />
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-center py-20">
-                        <p className="text-gray-400 text-lg">No skills found in this category.</p>
-                    </div>
-                )}
-
-                {/* Skills Summary */}
-                {!loading && Object.keys(skills).length > 0 && activeTab === 'all' && (
-                    <div className="mt-16">
-                        <h2 className="text-2xl font-bold text-white mb-8 text-center">Skills by Category</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {Object.entries(skills).map(([category, categorySkills]) => (
-                                <div key={category} className="card p-4 text-center">
-                                    <div className="text-3xl font-bold gradient-text mb-2">
-                                        {categorySkills.length}
-                                    </div>
-                                    <div className="text-gray-400 capitalize">{category}</div>
-                                </div>
-                            ))}
-                        </div>
+                        <FiCode className="text-gray-700 mx-auto mb-3" size={32} />
+                        <p className="text-gray-400 text-lg">No skills added yet.</p>
                     </div>
                 )}
             </div>

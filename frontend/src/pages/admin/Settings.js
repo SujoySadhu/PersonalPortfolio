@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiSave, FiUpload, FiUser, FiMail, FiPhone, FiMapPin, FiGithub, FiLinkedin, FiTwitter, FiGlobe, FiCode, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiSave, FiUpload, FiUser, FiMail, FiPhone, FiMapPin, FiGithub, FiLinkedin, FiTwitter, FiGlobe, FiCode, FiLock, FiEye, FiEyeOff, FiShield } from 'react-icons/fi';
 import { SiLeetcode, SiCodeforces, SiCodechef, SiHackerrank } from 'react-icons/si';
-import { settingsAPI, authAPI, getImageUrl, BACKEND_URL } from '../../services/api';
+import { settingsAPI, authAPI, BACKEND_URL } from '../../services/api';
 import Loading from '../../components/common/Loading';
 
 const Settings = () => {
@@ -18,6 +18,7 @@ const Settings = () => {
         location: '',
         resumeLink: '',
         isAvailableForHire: true,
+        enable2FA: true,
         socialLinks: {
             github: '',
             linkedin: '',
@@ -31,7 +32,7 @@ const Settings = () => {
     });
     const [profileImage, setProfileImage] = useState('');
     const [previewImage, setPreviewImage] = useState('');
-    
+
     // Password change state
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -59,6 +60,7 @@ const Settings = () => {
                 location: data.location || '',
                 resumeLink: data.resumeLink || '',
                 isAvailableForHire: data.isAvailableForHire ?? true,
+                enable2FA: data.enable2FA ?? true,
                 socialLinks: {
                     github: data.socialLinks?.github || '',
                     linkedin: data.socialLinks?.linkedin || '',
@@ -145,17 +147,17 @@ const Settings = () => {
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
-        
+
         if (passwordData.newPassword !== passwordData.confirmPassword) {
             alert('New passwords do not match!');
             return;
         }
-        
+
         if (passwordData.newPassword.length < 6) {
             alert('New password must be at least 6 characters!');
             return;
         }
-        
+
         setChangingPassword(true);
         try {
             await authAPI.updatePassword({
@@ -289,7 +291,7 @@ const Settings = () => {
                     <h2 className="text-xl font-semibold text-white mb-6">Contact Information</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiMail size={16} /> Email
                             </label>
                             <input
@@ -302,7 +304,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiPhone size={16} /> Phone
                             </label>
                             <input
@@ -315,7 +317,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiMapPin size={16} /> Location
                             </label>
                             <input
@@ -346,7 +348,7 @@ const Settings = () => {
                     <h2 className="text-xl font-semibold text-white mb-6">Social Links</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiGithub size={16} /> GitHub
                             </label>
                             <input
@@ -359,7 +361,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiLinkedin size={16} /> LinkedIn
                             </label>
                             <input
@@ -372,7 +374,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiTwitter size={16} /> Twitter
                             </label>
                             <input
@@ -385,7 +387,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <FiGlobe size={16} /> Website
                             </label>
                             <input
@@ -407,7 +409,7 @@ const Settings = () => {
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <SiLeetcode size={16} className="text-yellow-500" /> LeetCode
                             </label>
                             <input
@@ -420,7 +422,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <SiCodeforces size={16} className="text-blue-400" /> Codeforces
                             </label>
                             <input
@@ -433,7 +435,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <SiCodechef size={16} className="text-amber-600" /> CodeChef
                             </label>
                             <input
@@ -446,7 +448,7 @@ const Settings = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-300 mb-2 flex items-center gap-2">
+                            <label className="flex text-gray-300 mb-2 items-center gap-2">
                                 <SiHackerrank size={16} className="text-green-500" /> HackerRank
                             </label>
                             <input
@@ -473,6 +475,35 @@ const Settings = () => {
                                 type="checkbox"
                                 name="isAvailableForHire"
                                 checked={formData.isAvailableForHire}
+                                onChange={handleChange}
+                                className="sr-only peer"
+                            />
+                            <div className="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Security Section */}
+                <div className="bg-dark-200 rounded-xl p-6 border border-gray-800">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-primary-600/20 rounded-lg">
+                            <FiShield className="text-primary-400" size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-white">Security</h3>
+                            <p className="text-gray-400 text-sm">Manage login security settings</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-dark-300/50 rounded-lg border border-gray-700/50">
+                        <div>
+                            <h4 className="text-white font-medium">Two-Factor Authentication</h4>
+                            <p className="text-gray-400 text-sm mt-1">Require a 6-digit email verification code when logging in</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="enable2FA"
+                                checked={formData.enable2FA}
                                 onChange={handleChange}
                                 className="sr-only peer"
                             />
@@ -513,7 +544,7 @@ const Settings = () => {
                         <p className="text-gray-400 text-sm">Update your admin account password</p>
                     </div>
                 </div>
-                
+
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                     <div>
                         <label className="label">Current Password</label>
@@ -535,7 +566,7 @@ const Settings = () => {
                             </button>
                         </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="label">New Password</label>
@@ -558,7 +589,7 @@ const Settings = () => {
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div>
                             <label className="label">Confirm New Password</label>
                             <div className="relative">
@@ -581,7 +612,7 @@ const Settings = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="flex justify-end pt-2">
                         <button
                             type="submit"

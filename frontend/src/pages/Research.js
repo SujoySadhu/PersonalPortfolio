@@ -52,28 +52,28 @@ const Research = () => {
     }, [fetchResearch]);
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                        Research & <span className="gradient-text">Publications</span>
+                <div className="mb-12">
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        Research & Publications
                     </h1>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-gray-400 text-base">
                         My academic contributions, research papers, and publications.
                     </p>
                 </div>
 
                 {/* Filter Buttons */}
-                <div className="flex flex-wrap justify-center gap-3 mb-12">
+                <div className="flex flex-wrap gap-2 mb-12">
                     {types.map((type) => (
                         <button
                             key={type}
                             onClick={() => setFilter(type)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                                 filter === type
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-dark-100 text-gray-400 hover:bg-gray-700 hover:text-white'
+                                    ? 'bg-gray-800 text-white'
+                                    : 'text-gray-500 hover:text-white'
                             }`}
                         >
                             {typeLabels[type] || (type === 'all' ? 'All Publications' : type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}

@@ -53,7 +53,7 @@ const ResearchCard = ({ research }) => {
             )}
 
             {/* Publication Info */}
-            <div className="text-sm text-gray-500 mb-4">
+            <div className="text-sm text-gray-400 mb-4">
                 {journalName && <span>{journalName}</span>}
                 {conferenceName && <span>{conferenceName}</span>}
                 {publicationDate && (
@@ -64,7 +64,7 @@ const ResearchCard = ({ research }) => {
             </div>
 
             {/* Abstract */}
-            <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+            <p className="text-gray-300 text-sm mb-4 line-clamp-3">
                 {abstract}
             </p>
 

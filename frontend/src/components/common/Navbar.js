@@ -1,194 +1,94 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiMenu, FiX, FiGithub, FiLinkedin, FiMail, FiChevronDown } from 'react-icons/fi';
-import { settingsAPI } from '../../services/api';
+import { FiMenu, FiX } from 'react-icons/fi';
+import { useSettings } from '../../context/SettingsContext';
+
+const navItems = [
+    { path: '/', label: 'Home' },
+    { path: '/projects', label: 'Projects' },
+    { path: '/skills', label: 'Skills' },
+    { path: '/research', label: 'Research' },
+    { path: '/achievements', label: 'Achievements' },
+    { path: '/blog', label: 'Blog' },
+    { path: '/interests', label: 'Interests' },
+    { path: '/current-work', label: 'Building' },
+    { path: '/contact', label: 'Contact' },
+];
 
 const Navbar = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [moreOpen, setMoreOpen] = useState(false);
-    const [settings, setSettings] = useState(null);
-    const moreRef = useRef(null);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const { settings } = useSettings();
     const location = useLocation();
 
+    const isActive = (path) => {
+        if (path === '/') return location.pathname === '/';
+        return location.pathname.startsWith(path);
+    };
+
     useEffect(() => {
-        settingsAPI.get()
-            .then(res => setSettings(res.data.data))
-            .catch(err => console.error('Error loading settings:', err));
-    }, []);
-
-    // Main nav links
-    const mainLinks = [
-        { name: 'Home', path: '/' },
-        { name: 'Projects', path: '/projects' },
-        { name: 'Skills', path: '/skills' },
-        { name: 'Contact', path: '/contact' }
-    ];
-
-    // More dropdown links
-    const moreLinks = [
-        { name: 'Research', path: '/research' },
-        { name: 'Achievements', path: '/achievements' },
-        { name: 'Blog', path: '/blog' },
-        { name: 'Interests', path: '/interests' },
-        { name: 'Currently Working', path: '/current-work' }
-    ];
-
-    // All links for mobile
-    const allLinks = [...mainLinks.slice(0, 3), ...moreLinks, mainLinks[3]];
-
-    const isActive = (path) => location.pathname === path;
-    const isMoreActive = moreLinks.some(link => location.pathname === link.path);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (moreRef.current && !moreRef.current.contains(event.target)) {
-                setMoreOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Close dropdown on route change
-    useEffect(() => {
-        setMoreOpen(false);
+        setMobileOpen(false);
     }, [location.pathname]);
 
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-dark-200/80 backdrop-blur-md border-b border-gray-800">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-dark-300/90 backdrop-blur-xl shadow-lg shadow-black/10' : 'bg-transparent'
+            }`}>
+            {scrolled && <div className="nav-gradient-line" />}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold gradient-text">{settings?.name?.split(' ')[0] || 'Portfolio'}</span>
+                    <Link to="/" className="text-white font-semibold text-lg tracking-tight hover:text-primary-400 transition-colors">
+                        {settings?.name?.split(' ')[0] || 'Portfolio'}
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center space-x-8">
-                        {mainLinks.slice(0, 3).map((link) => (
+                    {/* Desktop Nav */}
+                    <div className="hidden md:flex items-center gap-1">
+                        {navItems.map(({ path, label }) => (
                             <Link
-                                key={link.path}
-                                to={link.path}
-                                className={`text-sm font-medium transition-colors duration-200 ${
-                                    isActive(link.path)
-                                        ? 'text-primary-400'
-                                        : 'text-gray-300 hover:text-white'
-                                }`}
+                                key={path}
+                                to={path}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(path)
+                                        ? 'text-white bg-gray-800/60'
+                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                                    }`}
                             >
-                                {link.name}
+                                {label}
                             </Link>
                         ))}
-
-                        {/* More Dropdown */}
-                        <div className="relative" ref={moreRef}>
-                            <button
-                                onClick={() => setMoreOpen(!moreOpen)}
-                                className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 ${
-                                    isMoreActive
-                                        ? 'text-primary-400'
-                                        : 'text-gray-300 hover:text-white'
-                                }`}
-                            >
-                                More
-                                <FiChevronDown className={`w-4 h-4 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            {moreOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-48 bg-dark-100 border border-gray-700 rounded-lg shadow-xl py-2 animate-fade-in">
-                                    {moreLinks.map((link) => (
-                                        <Link
-                                            key={link.path}
-                                            to={link.path}
-                                            className={`block px-4 py-2 text-sm transition-colors ${
-                                                isActive(link.path)
-                                                    ? 'text-primary-400 bg-primary-600/10'
-                                                    : 'text-gray-300 hover:text-white hover:bg-gray-800'
-                                            }`}
-                                        >
-                                            {link.name}
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <Link
-                            to="/contact"
-                            className={`text-sm font-medium transition-colors duration-200 ${
-                                isActive('/contact')
-                                    ? 'text-primary-400'
-                                    : 'text-gray-300 hover:text-white'
-                            }`}
-                        >
-                            Contact
-                        </Link>
                     </div>
 
-                    {/* Social Links */}
-                    <div className="hidden md:flex items-center space-x-4">
-                        {settings?.socialLinks?.github && (
-                            <a href={settings.socialLinks.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                                <FiGithub size={20} />
-                            </a>
-                        )}
-                        {settings?.socialLinks?.linkedin && (
-                            <a href={settings.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                                <FiLinkedin size={20} />
-                            </a>
-                        )}
-                        {settings?.email && (
-                            <a href={`mailto:${settings.email}`} className="text-gray-400 hover:text-white transition-colors">
-                                <FiMail size={20} />
-                            </a>
-                        )}
-                    </div>
-
-                    {/* Mobile menu button */}
+                    {/* Mobile Toggle */}
                     <button
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="md:hidden text-gray-300 hover:text-white"
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                        className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
                     >
-                        {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+                        {mobileOpen ? <FiX size={20} /> : <FiMenu size={20} />}
                     </button>
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
-            {isOpen && (
-                <div className="md:hidden bg-dark-100 border-b border-gray-800 animate-slide-down">
-                    <div className="px-4 py-4 space-y-3">
-                        {allLinks.map((link) => (
+            {/* Mobile Menu */}
+            {mobileOpen && (
+                <div className="md:hidden bg-dark-300/95 backdrop-blur-xl border-b border-gray-800/40 animate-slide-down">
+                    <div className="px-4 py-3 space-y-1">
+                        {navItems.map(({ path, label }) => (
                             <Link
-                                key={link.path}
-                                to={link.path}
-                                onClick={() => setIsOpen(false)}
-                                className={`block px-3 py-2 rounded-lg text-base font-medium transition-colors ${
-                                    isActive(link.path)
-                                        ? 'bg-primary-600/20 text-primary-400'
-                                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                                }`}
+                                key={path}
+                                to={path}
+                                className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(path)
+                                        ? 'text-white bg-gray-800/60'
+                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                                    }`}
                             >
-                                {link.name}
+                                {label}
                             </Link>
                         ))}
-                        <div className="flex items-center space-x-4 px-3 pt-4 border-t border-gray-700">
-                            {settings?.socialLinks?.github && (
-                                <a href={settings.socialLinks.github} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-                                    <FiGithub size={20} />
-                                </a>
-                            )}
-                            {settings?.socialLinks?.linkedin && (
-                                <a href={settings.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-                                    <FiLinkedin size={20} />
-                                </a>
-                            )}
-                            {settings?.email && (
-                                <a href={`mailto:${settings.email}`} className="text-gray-400 hover:text-white">
-                                    <FiMail size={20} />
-                                </a>
-                            )}
-                        </div>
                     </div>
                 </div>
             )}

@@ -38,7 +38,8 @@ exports.getBlogs = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(parseInt(limit))
-            .select('-content');
+            .select('-content')
+            .lean();
 
         const total = await Blog.countDocuments(query);
 

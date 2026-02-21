@@ -15,7 +15,7 @@ exports.getCategories = async (req, res) => {
             query.isActive = true;
         }
 
-        const categories = await Category.find(query).sort({ order: 1, name: 1 });
+        const categories = await Category.find(query).sort({ order: 1, name: 1 }).lean();
 
         res.status(200).json({
             success: true,
