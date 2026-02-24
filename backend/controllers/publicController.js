@@ -9,9 +9,9 @@ const CurrentWork = require('../models/CurrentWork');
 
 exports.getHomeData = async (req, res) => {
     try {
-        const [settings, projects, skills, research, achievements, blogs, interests, currentWork] = await Promise.all([
+        const [settings, featuredProjects, skills, research, achievements, blogs, interests, currentWork] = await Promise.all([
             Settings.findOne().lean(),
-            Project.find({ featured: true }).sort({ order: 1, createdAt: -1 }).limit(3).lean(),
+            Project.find({ featured: true }).sort({ order: 1, createdAt: -1 }).limit(6).lean(),
             Skill.find().sort({ order: 1 }).limit(8).lean(),
             Research.find({ featured: true }).sort({ createdAt: -1 }).limit(3).lean(),
             Achievement.find({ featured: true }).sort({ date: -1 }).limit(3).lean(),
@@ -19,6 +19,17 @@ exports.getHomeData = async (req, res) => {
             Interest.find({ isActive: true }).sort({ order: 1 }).limit(4).lean(),
             CurrentWork.find({ isFeatured: true }).sort({ order: 1, createdAt: -1 }).limit(3).lean()
         ]);
+
+        // If fewer than 6 featured projects, fill remaining slots with recent non-featured ones
+        let projects = featuredProjects;
+        if (projects.length < 6) {
+            const featuredIds = projects.map(p => p._id);
+            const recentProjects = await Project.find({
+                _id: { $nin: featuredIds },
+                featured: { $ne: true }
+            }).sort({ createdAt: -1 }).limit(6 - projects.length).lean();
+            projects = [...projects, ...recentProjects];
+        }
 
         res.status(200).json({
             success: true,

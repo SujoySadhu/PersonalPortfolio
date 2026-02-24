@@ -210,13 +210,15 @@ const Home = () => {
                 <div className="max-w-6xl mx-auto">
                     <ScrollAnimation className="mb-12" animation="fade-up">
                         <div className="section-ornament" />
-                        <h2 className="text-3xl font-bold text-white mb-2">Featured Projects</h2>
+                        <h2 className="text-3xl font-bold text-white mb-2">
+                            {featuredProjects.length > 0 && featuredProjects.every(p => p.featured) ? 'Featured Projects' : 'Projects'}
+                        </h2>
                         <p className="text-gray-400 text-base">A selection of recent work</p>
                     </ScrollAnimation>
 
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {[1, 2, 3].map(i => <ProjectCardSkeleton key={i} />)}
+                            {[1, 2, 3, 4, 5, 6].map(i => <ProjectCardSkeleton key={i} />)}
                         </div>
                     ) : featuredProjects.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -234,7 +236,7 @@ const Home = () => {
                     ) : (
                         <div className="text-center py-16">
                             <FiCode className="text-gray-700 mx-auto mb-3" size={32} />
-                            <p className="text-gray-500 text-sm">No featured projects yet</p>
+                            <p className="text-gray-500 text-sm">No projects yet</p>
                         </div>
                     )}
 
