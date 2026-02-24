@@ -1,14 +1,20 @@
 /**
  * Process HTML content from Quill editor for public display:
  * 1. Converts YouTube/Vimeo URL links into responsive embedded iframes
- * 2. Ensures spacing between consecutive images for visual separation
+ * 2. Resolves relative image paths to full backend URLs
+ * 3. Ensures spacing between consecutive images for visual separation
  */
+import { getImageUrl } from '../services/api';
+
 export function processContentImages(html) {
     if (!html) return html;
 
     try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
+
+        // --- Resolve relative image URLs to full backend URLs ---
+        resolveImageUrls(doc);
 
         // --- Convert video URL links to iframes ---
         convertVideoLinks(doc);
@@ -117,6 +123,22 @@ function createVideoEmbed(doc, embedUrl) {
     iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
     wrapper.appendChild(iframe);
     return wrapper;
+}
+
+/**
+ * Resolves relative image src attributes (e.g. /uploads/...) to full backend URLs.
+ */
+function resolveImageUrls(doc) {
+    const images = Array.from(doc.querySelectorAll('img'));
+    for (const img of images) {
+        const src = img.getAttribute('src');
+        if (src) {
+            const resolved = getImageUrl(src);
+            if (resolved && resolved !== src) {
+                img.setAttribute('src', resolved);
+            }
+        }
+    }
 }
 
 

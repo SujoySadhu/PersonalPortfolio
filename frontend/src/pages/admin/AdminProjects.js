@@ -93,7 +93,6 @@ const AdminProjects = () => {
                                                                 src={getImageUrl(project.thumbnail)}
                                                                 alt={project.title}
                                                                 className="w-full h-full object-cover"
-                                                                onError={(e) => { e.target.style.display = 'none'; }}
                                                             />
                                                         ) : (
                                                             <div className="w-full h-full bg-gray-600"></div>

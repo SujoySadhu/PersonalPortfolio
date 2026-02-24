@@ -635,6 +635,7 @@
   overflow-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
+  overflow: hidden;
 }
 
 /* ---- Headings ---- */
@@ -947,6 +948,53 @@
   float: right;
   margin: 0.5rem 0 0.75rem 1.25rem;
   max-width: 50%;
+}
+
+/* ---- Mobile responsiveness for Quill font sizes ---- */
+@media (max-width: 640px) {
+  .prose-details .ql-size-huge,
+  .prose-details .ql-size-64px {
+    font-size: 1.5rem;
+  }
+  .prose-details .ql-size-48px {
+    font-size: 1.35rem;
+  }
+  .prose-details .ql-size-36px {
+    font-size: 1.25rem;
+  }
+  .prose-details .ql-size-32px {
+    font-size: 1.2rem;
+  }
+  .prose-details .ql-size-28px {
+    font-size: 1.15rem;
+  }
+  .prose-details .ql-size-large,
+  .prose-details .ql-size-24px {
+    font-size: 1.1rem;
+  }
+  .prose-details .ql-size-20px {
+    font-size: 1.05rem;
+  }
+  .prose-details .ql-size-18px {
+    font-size: 1rem;
+  }
+  .prose-details h1 {
+    font-size: 1.5rem;
+  }
+  .prose-details h2 {
+    font-size: 1.25rem;
+  }
+  .prose-details h3 {
+    font-size: 1.1rem;
+  }
+  .prose-details img[style*="float: left"],
+  .prose-details img.ql-align-left,
+  .prose-details img[style*="float: right"],
+  .prose-details img.ql-align-right {
+    float: none;
+    max-width: 100%;
+    margin: 1rem auto;
+  }
 }
 
 
