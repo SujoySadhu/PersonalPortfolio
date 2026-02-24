@@ -488,19 +488,20 @@ const ProjectForm = () => {
                         {/* Existing Images */}
                         {existingImages.length > 0 && (
                             <div className="mb-4">
-                                <p className="text-gray-400 text-sm mb-2">Existing Images</p>
-                                <div className="flex flex-wrap gap-4">
+                                <p className="text-gray-400 text-sm mb-2">Existing Images ({existingImages.length})</p>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                                     {existingImages.map((img, index) => (
                                         <div key={index} className="relative group">
                                             <img
                                                 src={getImageUrl(img)}
                                                 alt={`Existing ${index + 1}`}
-                                                className="w-24 h-24 object-cover rounded-lg"
+                                                className="w-full aspect-square object-cover rounded-lg bg-dark-200"
+                                                onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('bg-dark-200'); }}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveExistingImage(index)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-lg"
                                             >
                                                 <FiX size={14} />
                                             </button>
@@ -513,19 +514,19 @@ const ProjectForm = () => {
                         {/* New Images */}
                         {images.length > 0 && (
                             <div className="mb-4">
-                                <p className="text-gray-400 text-sm mb-2">New Images</p>
-                                <div className="flex flex-wrap gap-4">
+                                <p className="text-gray-400 text-sm mb-2">New Images ({images.length})</p>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                                     {images.map((img, index) => (
                                         <div key={index} className="relative group">
                                             <img
                                                 src={URL.createObjectURL(img)}
                                                 alt={`New ${index + 1}`}
-                                                className="w-24 h-24 object-cover rounded-lg"
+                                                className="w-full aspect-square object-cover rounded-lg bg-dark-200"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveNewImage(index)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-lg"
                                             >
                                                 <FiX size={14} />
                                             </button>

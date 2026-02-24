@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiChevronLeft, FiChevronRight, FiX, FiImage } from 'react-icons/fi';
 import { projectsAPI, getImageUrl as getImg } from '../services/api';
 import { processContentImages } from '../config/processContentImages';
+
+// Placeholder for broken images
+const PLACEHOLDER_IMG = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" fill="%231a1a2e"><rect width="800" height="500"/><text x="400" y="260" text-anchor="middle" fill="%23555" font-size="20">Image not available</text></svg>'
+);
 
 // Skeleton shown when loading from direct URL (not from project list)
 const ProjectSkeleton = () => (
@@ -26,6 +31,46 @@ const ProjectSkeleton = () => (
     </div>
 );
 
+// Robust image component with loading state and error fallback
+const SafeImage = ({ src, alt, className, onClick, eager, ...props }) => {
+    const [status, setStatus] = useState('loading'); // 'loading' | 'loaded' | 'error'
+    const imgRef = useRef(null);
+
+    useEffect(() => {
+        setStatus('loading');
+    }, [src]);
+
+    return (
+        <div className="relative w-full h-full">
+            {status === 'loading' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-dark-200 animate-pulse rounded-inherit">
+                    <FiImage className="text-gray-600" size={32} />
+                </div>
+            )}
+            {status === 'error' ? (
+                <div className={`flex items-center justify-center bg-dark-200 ${className}`} onClick={onClick}>
+                    <div className="text-center p-4">
+                        <FiImage className="text-gray-600 mx-auto mb-2" size={32} />
+                        <p className="text-gray-500 text-xs">Image not available</p>
+                    </div>
+                </div>
+            ) : (
+                <img
+                    ref={imgRef}
+                    src={src}
+                    alt={alt}
+                    className={`${className} ${status === 'loading' ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+                    onClick={onClick}
+                    loading={eager ? 'eager' : 'lazy'}
+                    onLoad={() => setStatus('loaded')}
+                    onError={() => setStatus('error')}
+                    {...props}
+                />
+            )}
+        </div>
+    );
+};
+
 const ProjectDetails = () => {
     const { id } = useParams();
     const location = useLocation();
@@ -36,6 +81,11 @@ const ProjectDetails = () => {
 
     const [selectedImage, setSelectedImage] = useState(0);
     const [showLightbox, setShowLightbox] = useState(false);
+
+    // Touch/swipe support for mobile carousel
+    const touchStartX = useRef(null);
+    const touchEndX = useRef(null);
+    const minSwipeDistance = 50;
 
     const fetchProject = React.useCallback(async () => {
         try {
@@ -55,9 +105,11 @@ const ProjectDetails = () => {
         }
     }, [fetchProject, location.state?.project]);
 
-    const getImageUrl = (image) => {
-        return getImg(image) || 'https://via.placeholder.com/800x500?text=No+Image';
-    };
+    const getImageUrl = useCallback((image) => {
+        if (!image) return PLACEHOLDER_IMG;
+        const url = getImg(image);
+        return url || PLACEHOLDER_IMG;
+    }, []);
 
     const extractYouTubeId = (url) => {
         if (!url) return null;
@@ -65,17 +117,41 @@ const ProjectDetails = () => {
         return match ? match[1] : null;
     };
 
-    const nextImage = () => {
+    const nextImage = useCallback(() => {
         if (project?.images?.length > 0) {
             setSelectedImage((prev) => (prev + 1) % project.images.length);
         }
-    };
+    }, [project?.images?.length]);
 
-    const prevImage = () => {
+    const prevImage = useCallback(() => {
         if (project?.images?.length > 0) {
             setSelectedImage((prev) => (prev - 1 + project.images.length) % project.images.length);
         }
-    };
+    }, [project?.images?.length]);
+
+    // Touch handlers for swipe
+    const handleTouchStart = useCallback((e) => {
+        touchStartX.current = e.targetTouches[0].clientX;
+        touchEndX.current = null;
+    }, []);
+
+    const handleTouchMove = useCallback((e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        const distance = touchStartX.current - touchEndX.current;
+        if (Math.abs(distance) >= minSwipeDistance) {
+            if (distance > 0) {
+                nextImage(); // swipe left → next
+            } else {
+                prevImage(); // swipe right → prev
+            }
+        }
+        touchStartX.current = null;
+        touchEndX.current = null;
+    }, [nextImage, prevImage]);
 
     if (loading) {
         return <ProjectSkeleton />;
@@ -124,11 +200,11 @@ const ProjectDetails = () => {
                                         className="relative rounded-xl overflow-hidden bg-dark-100 border border-gray-800/60 cursor-pointer group"
                                         onClick={() => { setSelectedImage(index); setShowLightbox(true); }}
                                     >
-                                        <img
+                                        <SafeImage
                                             src={getImageUrl(image)}
                                             alt={`${project.title} ${index + 1}`}
                                             className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105"
-                                            loading="lazy"
+                                            eager={index === 0}
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
                                             <span className="text-white text-xs bg-black/50 px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">View</span>
@@ -139,13 +215,18 @@ const ProjectDetails = () => {
                         ) : (
                             /* Carousel Layout (default) */
                             <>
-                                <div className="relative rounded-2xl overflow-hidden bg-dark-100 border border-gray-800/60">
-                                    <img
+                                <div
+                                    className="relative rounded-2xl overflow-hidden bg-dark-100 border border-gray-800/60 touch-pan-y"
+                                    onTouchStart={handleTouchStart}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={handleTouchEnd}
+                                >
+                                    <SafeImage
                                         src={getImageUrl(project.images[selectedImage])}
                                         alt={project.title}
                                         className="w-full aspect-video object-contain bg-dark-200 cursor-pointer"
                                         onClick={() => setShowLightbox(true)}
-                                        loading="lazy"
+                                        eager
                                     />
 
                                     {project.images.length > 1 && (
@@ -172,19 +253,22 @@ const ProjectDetails = () => {
 
                                 {/* Thumbnails */}
                                 {project.images.length > 1 && (
-                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
                                         {project.images.map((image, index) => (
-                                            <img
+                                            <div
                                                 key={index}
-                                                src={getImageUrl(image)}
-                                                alt={`${project.title} ${index + 1}`}
-                                                className={`w-16 h-11 object-cover rounded-lg cursor-pointer transition-all flex-shrink-0 ${selectedImage === index
+                                                className={`w-16 h-11 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer transition-all ${selectedImage === index
                                                     ? 'ring-2 ring-primary-500 opacity-100'
                                                     : 'opacity-50 hover:opacity-80'
                                                     }`}
                                                 onClick={() => setSelectedImage(index)}
-                                                loading="lazy"
-                                            />
+                                            >
+                                                <SafeImage
+                                                    src={getImageUrl(image)}
+                                                    alt={`${project.title} ${index + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
                                         ))}
                                     </div>
                                 )}
@@ -289,30 +373,36 @@ const ProjectDetails = () => {
 
                 {/* Lightbox */}
                 {showLightbox && project.images && (
-                    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
+                    <div
+                        className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                    >
                         <button
                             onClick={() => setShowLightbox(false)}
-                            className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10"
                         >
                             <FiX size={20} />
                         </button>
 
                         <button
                             onClick={prevImage}
-                            className="absolute left-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            className="absolute left-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10"
                         >
                             <FiChevronLeft size={24} />
                         </button>
 
-                        <img
+                        <SafeImage
                             src={getImageUrl(project.images[selectedImage])}
                             alt={project.title}
                             className="max-w-full max-h-[90vh] object-contain"
+                            eager
                         />
 
                         <button
                             onClick={nextImage}
-                            className="absolute right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            className="absolute right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10"
                         >
                             <FiChevronRight size={24} />
                         </button>

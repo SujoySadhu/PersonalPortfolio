@@ -21,6 +21,17 @@ const Home = () => {
     const [loading, setLoading] = useState(true);
     const [selectedAchievement, setSelectedAchievement] = useState(null);
     const [imageZoom, setImageZoom] = useState(false);
+    const [isTakingLong, setIsTakingLong] = useState(false);
+
+    useEffect(() => {
+        let timer;
+        if (loading) {
+            timer = setTimeout(() => {
+                setIsTakingLong(true);
+            }, 5000);
+        }
+        return () => clearTimeout(timer);
+    }, [loading]);
 
     useEffect(() => {
         fetchData();
@@ -49,7 +60,15 @@ const Home = () => {
 
     if (loading && !settings) {
         return (
-            <div className="min-h-screen">
+            <div className="min-h-screen relative">
+                {isTakingLong && (
+                    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in w-[90%] md:w-auto">
+                        <div className="bg-dark-100/90 backdrop-blur-md border border-primary-500/30 px-6 py-4 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)] flex items-center gap-4">
+                            <div className="w-5 h-5 rounded-full border-2 border-primary-500 border-t-transparent animate-spin flex-shrink-0"></div>
+                            <span className="text-primary-400 text-sm font-medium leading-relaxed">Server is waking up from sleep mode.<br className="md:hidden" /> This may take up to a minute, please wait...</span>
+                        </div>
+                    </div>
+                )}
                 <HeroSkeleton />
                 <section className="py-20 px-4">
                     <div className="max-w-6xl mx-auto">

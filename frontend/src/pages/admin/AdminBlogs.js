@@ -28,10 +28,10 @@ const AdminBlogs = () => {
                 page: pagination.page,
                 limit: 10
             };
-            
+
             if (filter === 'published') params.published = 'true';
             else if (filter === 'draft') params.published = 'false';
-            
+
             if (searchTerm) params.search = searchTerm;
 
             const response = await blogsAPI.getAll(params);
@@ -137,11 +137,10 @@ const AdminBlogs = () => {
                                     setFilter(f);
                                     setPagination(prev => ({ ...prev, page: 1 }));
                                 }}
-                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                    filter === f
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f
                                         ? 'bg-primary-600 text-white'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
+                                    }`}
                             >
                                 {f.charAt(0).toUpperCase() + f.slice(1)}
                             </button>
@@ -191,7 +190,7 @@ const AdminBlogs = () => {
             ) : (
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full hidden md:table">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -261,11 +260,10 @@ const AdminBlogs = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                    blog.published 
-                                                        ? 'bg-green-100 text-green-700' 
+                                                <span className={`px-2 py-1 rounded text-xs font-medium ${blog.published
+                                                        ? 'bg-green-100 text-green-700'
                                                         : 'bg-yellow-100 text-yellow-700'
-                                                }`}>
+                                                    }`}>
                                                     {blog.published ? 'Published' : 'Draft'}
                                                 </span>
                                                 {blog.featured && (
@@ -279,22 +277,20 @@ const AdminBlogs = () => {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleTogglePublish(blog._id, blog.published)}
-                                                    className={`p-2 rounded-lg transition-colors ${
-                                                        blog.published
+                                                    className={`p-2 rounded-lg transition-colors ${blog.published
                                                             ? 'text-green-600 hover:bg-green-50'
                                                             : 'text-gray-400 hover:bg-gray-100'
-                                                    }`}
+                                                        }`}
                                                     title={blog.published ? 'Unpublish' : 'Publish'}
                                                 >
                                                     {blog.published ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
                                                 </button>
                                                 <button
                                                     onClick={() => handleToggleFeatured(blog._id, blog.featured)}
-                                                    className={`p-2 rounded-lg transition-colors ${
-                                                        blog.featured
+                                                    className={`p-2 rounded-lg transition-colors ${blog.featured
                                                             ? 'text-yellow-500 hover:bg-yellow-50'
                                                             : 'text-gray-400 hover:bg-gray-100'
-                                                    }`}
+                                                        }`}
                                                     title={blog.featured ? 'Remove from featured' : 'Add to featured'}
                                                 >
                                                     <FiStar className={`w-5 h-5 ${blog.featured ? 'fill-current' : ''}`} />
@@ -319,6 +315,53 @@ const AdminBlogs = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-gray-200">
+                        {blogs.map((blog) => (
+                            <div key={blog._id} className="p-4 hover:bg-gray-50 bg-white">
+                                <div className="flex items-start gap-4 mb-3">
+                                    <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                        {blog.coverImage ? (
+                                            <img src={getImageUrl(blog.coverImage)} alt={blog.title} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                <span className="text-xl">📝</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-gray-900 line-clamp-2">{blog.title}</div>
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                            <span className="flex items-center gap-1"><FiCalendar className="w-3 h-3" />{formatDate(blog.createdAt)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between mt-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${blog.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                            {blog.published ? 'Published' : 'Draft'}
+                                        </span>
+                                        {blog.featured && <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium">Featured</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleTogglePublish(blog._id, blog.published)} className={`p-2 rounded-lg transition-colors ${blog.published ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`}>
+                                            {blog.published ? <FiEye className="w-5 h-5" /> : <FiEyeOff className="w-5 h-5" />}
+                                        </button>
+                                        <button onClick={() => handleToggleFeatured(blog._id, blog.featured)} className={`p-2 rounded-lg transition-colors ${blog.featured ? 'text-yellow-500 hover:bg-yellow-50' : 'text-gray-400 hover:bg-gray-100'}`}>
+                                            <FiStar className={`w-5 h-5 ${blog.featured ? 'fill-current' : ''}`} />
+                                        </button>
+                                        <Link to={`/admin/blogs/edit/${blog._id}`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                            <FiEdit2 className="w-5 h-5" />
+                                        </Link>
+                                        <button onClick={() => handleDelete(blog._id, blog.title)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                            <FiTrash2 className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Pagination */}

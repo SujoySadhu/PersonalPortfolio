@@ -67,8 +67,13 @@ export const clearApiCache = () => apiCache.clear();
  */
 export const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
+    // Already a full URL
     if (imagePath.startsWith('http')) return imagePath;
-    return `${BACKEND_URL}${imagePath}`;
+    // Data URI
+    if (imagePath.startsWith('data:')) return imagePath;
+    // Ensure path starts with /
+    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    return `${BACKEND_URL}${cleanPath}`;
 };
 
 // ============================================
