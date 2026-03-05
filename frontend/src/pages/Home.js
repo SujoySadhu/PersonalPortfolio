@@ -88,7 +88,7 @@ const Home = () => {
                         {/* Profile Image with gradient glow ring */}
                         <div className="flex-shrink-0 animate-fade-in">
                             <div className="profile-ring">
-                                <div className="relative w-44 h-44 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full overflow-hidden bg-dark-200">
+                                <div className="relative w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden bg-dark-200">
                                     <img
                                         src={LOCAL_PROFILE_IMAGE}
                                         alt="Profile"
@@ -348,63 +348,88 @@ const Home = () => {
                 </section>
             )}
 
-            {/* Achievement Modal */}
+            {/* Achievement Detail Modal */}
             {selectedAchievement && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => { setSelectedAchievement(null); setImageZoom(false); }}>
-                    <div className="relative bg-dark-100 border border-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { setSelectedAchievement(null); setImageZoom(false); }} className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white rounded-lg transition-colors z-10">
+                    <div className="relative bg-dark-100 border border-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => { setSelectedAchievement(null); setImageZoom(false); }}
+                            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-dark-200/80 backdrop-blur-sm rounded-full transition-colors z-10"
+                        >
                             <FiX className="w-5 h-5" />
                         </button>
-                        <div className="p-8">
-                            {selectedAchievement.image && (
-                                <div className="flex justify-center mb-6">
-                                    <img
-                                        src={getImageUrl(selectedAchievement.image)}
-                                        alt={selectedAchievement.title}
-                                        className="w-24 h-24 rounded-2xl object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                        onClick={() => setImageZoom(true)}
-                                    />
-                                </div>
-                            )}
-                            <h3 className="text-2xl font-bold text-white text-center mb-2">{selectedAchievement.title}</h3>
-                            <p className="text-primary-400 text-center mb-6">{selectedAchievement.issuer}</p>
 
-                            <div className="flex flex-wrap justify-center gap-4 mb-6 text-sm text-gray-500">
+                        {/* Full-width Image */}
+                        {selectedAchievement.image && (
+                            <div
+                                className="w-full overflow-hidden rounded-t-2xl cursor-pointer"
+                                onClick={() => setImageZoom(true)}
+                            >
+                                <img
+                                    src={getImageUrl(selectedAchievement.image)}
+                                    alt={selectedAchievement.title}
+                                    className="w-full max-h-[450px] object-contain bg-dark-200"
+                                />
+                            </div>
+                        )}
+
+                        <div className={`p-6 sm:p-8 ${!selectedAchievement.image ? 'pt-14' : ''}`}>
+                            <h3 className="text-2xl font-bold text-white mb-2 leading-snug">
+                                {selectedAchievement.title}
+                            </h3>
+
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-5">
+                                {selectedAchievement.issuer && (
+                                    <span className="text-primary-400 text-sm font-medium">{selectedAchievement.issuer}</span>
+                                )}
+                                {selectedAchievement.issuer && selectedAchievement.date && (
+                                    <span className="text-gray-700">·</span>
+                                )}
                                 {selectedAchievement.date && (
-                                    <span className="flex items-center gap-1.5">
+                                    <span className="flex items-center gap-1.5 text-gray-500 text-sm">
                                         <FiCalendar size={13} />
-                                        {new Date(selectedAchievement.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        {new Date(selectedAchievement.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>
                                 )}
                                 {selectedAchievement.credentialId && (
-                                    <span className="flex items-center gap-1.5">
-                                        <FiAward size={13} />
-                                        {selectedAchievement.credentialId}
-                                    </span>
+                                    <>
+                                        <span className="text-gray-700">·</span>
+                                        <span className="flex items-center gap-1.5 text-gray-500 text-sm">
+                                            <FiAward size={13} />
+                                            {selectedAchievement.credentialId}
+                                        </span>
+                                    </>
                                 )}
                             </div>
 
                             {selectedAchievement.description && (
-                                <p className="text-gray-400 text-sm leading-relaxed mb-6 border-t border-gray-800 pt-6">{selectedAchievement.description}</p>
+                                <div className="mb-6 pb-6 border-b border-gray-800/60">
+                                    <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{selectedAchievement.description}</p>
+                                </div>
                             )}
 
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                {selectedAchievement.credentialLink && (
-                                    <a href={selectedAchievement.credentialLink} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-dark-200 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm">
-                                        <FiExternalLink size={14} /> View Credential
-                                    </a>
-                                )}
-                                {selectedAchievement.certificateUrl && (
-                                    <a href={getImageUrl(selectedAchievement.certificateUrl)} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-800 text-gray-400 font-medium rounded-lg hover:border-gray-700 hover:text-white transition-colors text-sm">
-                                        <FiDownload size={14} /> Certificate
-                                    </a>
-                                )}
-                                {selectedAchievement.profileUrl && (
-                                    <a href={selectedAchievement.profileUrl} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-800 text-gray-400 font-medium rounded-lg hover:border-gray-700 hover:text-white transition-colors text-sm">
-                                        <FiLink size={14} /> Profile
-                                    </a>
-                                )}
-                            </div>
+                            {(selectedAchievement.credentialLink || selectedAchievement.certificateUrl || selectedAchievement.profileUrl) && (
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    {selectedAchievement.credentialLink && (
+                                        <a href={selectedAchievement.credentialLink} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 btn-gradient rounded-lg font-medium text-sm">
+                                            <FiExternalLink size={14} /> View Credential
+                                        </a>
+                                    )}
+                                    {selectedAchievement.certificateUrl && (
+                                        <a href={getImageUrl(selectedAchievement.certificateUrl)} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-800 text-gray-400 font-medium rounded-lg hover:border-gray-700 hover:text-white transition-colors text-sm">
+                                            <FiDownload size={14} /> Certificate
+                                        </a>
+                                    )}
+                                    {selectedAchievement.profileUrl && (
+                                        <a href={selectedAchievement.profileUrl} target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-800 text-gray-400 font-medium rounded-lg hover:border-gray-700 hover:text-white transition-colors text-sm">
+                                            <FiLink size={14} /> Profile
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

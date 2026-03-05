@@ -53,9 +53,9 @@ const Navbar = () => {
                             <Link
                                 key={path}
                                 to={path}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(path)
-                                        ? 'text-white bg-gray-800/60'
-                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                                className={`px-3 py-1.5 rounded-lg text-base font-medium transition-all duration-200 ${isActive(path)
+                                    ? 'text-white bg-gray-800/60'
+                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
                                     }`}
                             >
                                 {label}
@@ -82,8 +82,8 @@ const Navbar = () => {
                                 key={path}
                                 to={path}
                                 className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(path)
-                                        ? 'text-white bg-gray-800/60'
-                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                                    ? 'text-white bg-gray-800/60'
+                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
                                     }`}
                             >
                                 {label}

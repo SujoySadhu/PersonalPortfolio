@@ -14,8 +14,8 @@ const AchievementCard = ({ achievement }) => {
                     {/* Image */}
                     {imageUrl && (
                         <div className="aspect-[4/3] overflow-hidden">
-                            <img 
-                                src={imageUrl} 
+                            <img
+                                src={imageUrl}
                                 alt={title}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 loading="lazy"
