@@ -6,15 +6,42 @@
  * Fetches settings ONCE and shares across all components
  * (Navbar, Footer, Home, Contact etc.) to eliminate 
  * redundant API calls. Includes in-memory + sessionStorage cache.
+ * 
+ * IMPORTANT: Initializes with DEFAULT_SETTINGS so the UI
+ * renders instantly, even before the backend wakes up.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { settingsAPI } from '../services/api';
+import { DEFAULT_SETTINGS } from '../data/defaults';
 
 const SettingsContext = createContext(null);
 
 const CACHE_KEY = 'portfolio_settings';
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Deep-merge backend settings on top of defaults.
+ * Only overwrites a default value if the backend provides
+ * a non-empty replacement.
+ */
+const mergeSettings = (defaults, remote) => {
+    if (!remote) return defaults;
+    const merged = { ...defaults };
+    for (const key of Object.keys(remote)) {
+        if (key === 'socialLinks' && remote.socialLinks) {
+            merged.socialLinks = { ...defaults.socialLinks };
+            for (const sk of Object.keys(remote.socialLinks)) {
+                if (remote.socialLinks[sk]) {
+                    merged.socialLinks[sk] = remote.socialLinks[sk];
+                }
+            }
+        } else if (remote[key] !== undefined && remote[key] !== null && remote[key] !== '') {
+            merged[key] = remote[key];
+        }
+    }
+    return merged;
+};
 
 export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState(() => {
@@ -24,19 +51,22 @@ export const SettingsProvider = ({ children }) => {
             if (cached) {
                 const { data, timestamp } = JSON.parse(cached);
                 if (Date.now() - timestamp < CACHE_DURATION) {
-                    return data;
+                    return mergeSettings(DEFAULT_SETTINGS, data);
                 }
             }
         } catch (e) { /* ignore */ }
-        return null;
+        // Fall back to hardcoded defaults — renders instantly
+        return DEFAULT_SETTINGS;
     });
-    const [loading, setLoading] = useState(!settings);
+    // Start as false so the UI is never blocked
+    const [loading, setLoading] = useState(false);
 
     const fetchSettings = useCallback(async () => {
         try {
             const res = await settingsAPI.get();
             const data = res.data.data;
-            setSettings(data);
+            const merged = mergeSettings(DEFAULT_SETTINGS, data);
+            setSettings(merged);
             // Cache in sessionStorage
             try {
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify({
@@ -46,6 +76,7 @@ export const SettingsProvider = ({ children }) => {
             } catch (e) { /* ignore */ }
         } catch (error) {
             console.error('Error fetching settings:', error);
+            // Keep using defaults — no crash
         } finally {
             setLoading(false);
         }

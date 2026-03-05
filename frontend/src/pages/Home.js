@@ -7,7 +7,7 @@ import { useSettings } from '../context/SettingsContext';
 import { ScrollAnimation } from '../hooks/useScrollAnimation';
 import ProjectCard from '../components/projects/ProjectCard';
 import SkillCard from '../components/skills/SkillCard';
-import { HeroSkeleton, ProjectCardSkeleton, SkillCardSkeleton } from '../components/common/Skeleton';
+import { ProjectCardSkeleton, SkillCardSkeleton } from '../components/common/Skeleton';
 
 const Home = () => {
     const { settings } = useSettings();
@@ -53,38 +53,28 @@ const Home = () => {
             console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
+            setIsTakingLong(false);
         }
     };
 
     const LOCAL_PROFILE_IMAGE = '/profile.jpeg';
 
-    if (loading && !settings) {
-        return (
-            <div className="min-h-screen relative">
-                {isTakingLong && (
-                    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in w-[90%] md:w-auto">
-                        <div className="bg-dark-100/90 backdrop-blur-md border border-primary-500/30 px-6 py-4 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)] flex items-center gap-4">
-                            <div className="w-5 h-5 rounded-full border-2 border-primary-500 border-t-transparent animate-spin flex-shrink-0"></div>
-                            <span className="text-primary-400 text-sm font-medium leading-relaxed">Server is waking up from sleep mode.<br className="md:hidden" /> This may take up to a minute, please wait...</span>
-                        </div>
-                    </div>
-                )}
-                <HeroSkeleton />
-                <section className="py-20 px-4">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {[1, 2, 3].map(i => <ProjectCardSkeleton key={i} />)}
-                        </div>
-                    </div>
-                </section>
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen">
             {/* ============================================ */}
-            {/* HERO SECTION */}
+            {/* NON-BLOCKING SERVER WAKING UP BANNER */}
+            {/* ============================================ */}
+            {isTakingLong && loading && (
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in w-[90%] md:w-auto">
+                    <div className="bg-dark-100/90 backdrop-blur-md border border-primary-500/30 px-5 py-3 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)] flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full border-2 border-primary-500 border-t-transparent animate-spin flex-shrink-0"></div>
+                        <span className="text-primary-400 text-sm font-medium leading-relaxed">Loading dynamic content... Server is waking up, please wait.</span>
+                    </div>
+                </div>
+            )}
+
+            {/* ============================================ */}
+            {/* HERO SECTION — RENDERS INSTANTLY */}
             {/* ============================================ */}
             <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 sm:py-20 pt-24 overflow-hidden">
                 {/* Animated gradient mesh orbs */}
@@ -116,7 +106,7 @@ const Home = () => {
                             </div>
                         </div>
 
-                        {/* Content */}
+                        {/* Content — uses settings which always has defaults */}
                         <div className="text-center lg:text-left flex-1 animate-fade-in">
                             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 tracking-tight">
                                 <span className="text-gradient">{settings?.name || 'Your Name'}</span>
@@ -211,7 +201,7 @@ const Home = () => {
                     <ScrollAnimation className="mb-12" animation="fade-up">
                         <div className="section-ornament" />
                         <h2 className="text-3xl font-bold text-white mb-2">
-                            {featuredProjects.length > 0 && featuredProjects.every(p => p.featured) ? 'Featured Projects' : 'Projects'}
+                            {!loading && featuredProjects.length > 0 && featuredProjects.every(p => p.featured) ? 'Featured Projects' : 'Projects'}
                         </h2>
                         <p className="text-gray-400 text-base">A selection of recent work</p>
                     </ScrollAnimation>
