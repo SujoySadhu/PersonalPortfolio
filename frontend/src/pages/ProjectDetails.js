@@ -250,23 +250,64 @@ const ProjectDetails = () => {
                 </div>
 
                 {/* Tech Stack */}
-                {project.techStack && project.techStack.length > 0 && (
-                    <div className="mb-8">
-                        <div className="border-l-[3px] border-primary-500 pl-4 mb-4">
-                            <h3 className="text-lg font-bold text-white">Technologies Used</h3>
+                {project.techStack && project.techStack.length > 0 && (() => {
+                    const groupDot = {
+                        Frontend: 'bg-blue-400',
+                        Backend: 'bg-emerald-400',
+                        Database: 'bg-violet-400',
+                        DevOps: 'bg-amber-400',
+                        Tools: 'bg-gray-400',
+                    };
+                    const groupLabel = {
+                        Frontend: 'text-blue-400/70',
+                        Backend: 'text-emerald-400/70',
+                        Database: 'text-violet-400/70',
+                        DevOps: 'text-amber-400/70',
+                        Tools: 'text-gray-500',
+                    };
+                    // Group tech by category
+                    const groups = {};
+                    project.techStack.forEach(tech => {
+                        const name = typeof tech === 'string' ? tech : tech.name;
+                        const cat = (typeof tech === 'object' && tech.category) ? tech.category : 'Tools';
+                        if (!name) return;
+                        (groups[cat] = groups[cat] || []).push(name);
+                    });
+                    const categoryOrder = ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'];
+                    const entries = categoryOrder
+                        .filter(cat => groups[cat] && groups[cat].length > 0)
+                        .map(cat => [cat, groups[cat]]);
+
+                    return (
+                        <div className="mb-8">
+                            <div className="border-l-[3px] border-primary-500 pl-4 mb-4">
+                                <h3 className="text-lg font-bold text-white">Technologies Used</h3>
+                            </div>
+                            <div className="space-y-3">
+                                {entries.map(([group, techs]) => (
+                                    <div key={group} className="flex items-start gap-3">
+                                        <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+                                            <span className={`w-2 h-2 rounded-full ${groupDot[group] || 'bg-gray-400'}`} />
+                                            <span className={`text-xs font-bold uppercase tracking-wider ${groupLabel[group] || 'text-gray-500'} w-20`}>
+                                                {group}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {techs.map((tech, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="px-3 py-1.5 bg-dark-100 border border-gray-800/60 text-gray-300 rounded-lg text-sm"
+                                                >
+                                                    {tech}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {project.techStack.map((tech, index) => (
-                                <span
-                                    key={index}
-                                    className="px-3 py-1.5 bg-dark-100 border border-gray-800/60 text-gray-300 rounded-lg text-sm"
-                                >
-                                    {tech}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {/* YouTube Video */}
                 {youtubeId && (

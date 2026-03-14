@@ -2,6 +2,34 @@ const Project = require('../models/Project');
 const fs = require('fs');
 const path = require('path');
 
+// Helper: parse techStack from FormData into [{name, category}] objects
+const parseTechStack = (raw) => {
+    if (!raw) return [];
+    // Already an array of objects
+    if (Array.isArray(raw)) {
+        return raw.map(item => {
+            if (typeof item === 'string') return { name: item.trim(), category: 'Tools' };
+            return { name: item.name?.trim(), category: item.category || 'Tools' };
+        }).filter(item => item.name);
+    }
+    // JSON string (new format)
+    if (typeof raw === 'string') {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.map(item => {
+                    if (typeof item === 'string') return { name: item.trim(), category: 'Tools' };
+                    return { name: item.name?.trim(), category: item.category || 'Tools' };
+                }).filter(item => item.name);
+            }
+        } catch (e) {
+            // Fallback: comma-separated string (old format)
+            return raw.split(',').map(t => t.trim()).filter(Boolean).map(name => ({ name, category: 'Tools' }));
+        }
+    }
+    return [];
+};
+
 // @desc    Get all projects
 // @route   GET /api/projects
 // @access  Public
@@ -73,10 +101,8 @@ exports.createProject = async (req, res) => {
             }
         }
 
-        // Parse techStack if it's a string
-        if (typeof req.body.techStack === 'string') {
-            req.body.techStack = req.body.techStack.split(',').map(tech => tech.trim());
-        }
+        // Parse techStack into [{name, category}] objects
+        req.body.techStack = parseTechStack(req.body.techStack);
 
         const project = await Project.create(req.body);
 
@@ -147,13 +173,9 @@ exports.updateProject = async (req, res) => {
             project.featured = req.body.featured === 'true' || req.body.featured === true;
         }
 
-        // Parse techStack
+        // Parse techStack into [{name, category}] objects
         if (req.body.techStack !== undefined) {
-            if (typeof req.body.techStack === 'string') {
-                project.techStack = req.body.techStack.split(',').map(t => t.trim()).filter(Boolean);
-            } else if (Array.isArray(req.body.techStack)) {
-                project.techStack = req.body.techStack;
-            }
+            project.techStack = parseTechStack(req.body.techStack);
         }
 
         // Set images and thumbnail

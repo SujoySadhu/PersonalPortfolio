@@ -41,8 +41,11 @@ const ProjectCard = ({ project }) => {
         if (!techStack || techStack.length === 0) return null;
         const groups = {};
         techStack.forEach(tech => {
-            const cat = categorizeTech(tech);
-            (groups[cat] = groups[cat] || []).push(tech);
+            // Support both new {name, category} objects and legacy strings
+            const name = typeof tech === 'string' ? tech : tech.name;
+            const cat = (typeof tech === 'object' && tech.category) ? tech.category : categorizeTech(name || '');
+            if (!name) return;
+            (groups[cat] = groups[cat] || []).push(name);
         });
         return Object.entries(groups);
     }, [techStack]);

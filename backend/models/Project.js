@@ -1,4 +1,4 @@
-﻿const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 const ProjectSchema = new mongoose.Schema({
     title: {
@@ -20,7 +20,14 @@ const ProjectSchema = new mongoose.Schema({
     youtubeLink: { type: String, default: '' },
     liveDemoLink: { type: String, default: '' },
     githubLink: { type: String, default: '' },
-    techStack: [{ type: String, trim: true }],
+    techStack: [{
+        name: { type: String, trim: true },
+        category: {
+            type: String,
+            enum: ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'],
+            default: 'Tools'
+        }
+    }],
     category: {
         type: String,
         enum: ['web', 'mobile', 'desktop', 'ai-ml', 'other'],

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { FiSave, FiArrowLeft, FiX, FiPlus, FiImage, FiGrid, FiColumns } from 'react-icons/fi';
+import { FiSave, FiArrowLeft, FiX, FiPlus, FiImage, FiGrid, FiColumns, FiChevronDown } from 'react-icons/fi';
 import { projectsAPI, categoriesAPI, getImageUrl, BACKEND_URL } from '../../services/api';
 import Loading from '../../components/common/Loading';
 import { quillFormats, quillToolbar, attachImageDeleteHandler } from '../../config/quillConfig';
@@ -13,6 +13,14 @@ const defaultCategories = [
     { value: 'desktop', label: '🖥️ Desktop' },
     { value: 'ai-ml', label: '🤖 AI/ML' },
     { value: 'other', label: '📁 Other' }
+];
+
+const techCategories = [
+    { value: 'Frontend', label: 'Frontend', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    { value: 'Backend', label: 'Backend', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    { value: 'Database', label: 'Database', color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
+    { value: 'DevOps', label: 'DevOps', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    { value: 'Tools', label: 'Tools', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
 ];
 
 const ProjectForm = () => {
@@ -99,6 +107,7 @@ const ProjectForm = () => {
         imageLayout: 'carousel'
     });
     const [techInput, setTechInput] = useState('');
+    const [techCategory, setTechCategory] = useState('Frontend');
     const [images, setImages] = useState([]);
     const [existingImages, setExistingImages] = useState([]);
 
@@ -174,11 +183,21 @@ const ProjectForm = () => {
         }));
     };
 
+    // Normalize techStack items (handle legacy string format)
+    const normalizeTechStack = (stack) => {
+        if (!stack || !Array.isArray(stack)) return [];
+        return stack.map(item => {
+            if (typeof item === 'string') return { name: item, category: 'Tools' };
+            return { name: item.name || '', category: item.category || 'Tools' };
+        });
+    };
+
     const handleAddTech = () => {
-        if (techInput.trim() && !formData.techStack.includes(techInput.trim())) {
+        const name = techInput.trim();
+        if (name && !formData.techStack.some(t => (t.name || t) === name)) {
             setFormData(prev => ({
                 ...prev,
-                techStack: [...prev.techStack, techInput.trim()]
+                techStack: [...normalizeTechStack(prev.techStack), { name, category: techCategory }]
             }));
             setTechInput('');
         }
@@ -187,7 +206,7 @@ const ProjectForm = () => {
     const handleRemoveTech = (tech) => {
         setFormData(prev => ({
             ...prev,
-            techStack: prev.techStack.filter(t => t !== tech)
+            techStack: normalizeTechStack(prev.techStack).filter(t => t.name !== tech.name)
         }));
     };
 
@@ -223,7 +242,12 @@ const ProjectForm = () => {
             // Append text fields
             Object.keys(formData).forEach(key => {
                 if (key === 'techStack') {
-                    data.append(key, formData[key].join(','));
+                    // Send as JSON array of {name, category} objects
+                    const normalized = formData[key].map(item => {
+                        if (typeof item === 'string') return { name: item, category: 'Tools' };
+                        return { name: item.name, category: item.category || 'Tools' };
+                    });
+                    data.append(key, JSON.stringify(normalized));
                 } else {
                     data.append(key, formData[key]);
                 }
@@ -427,6 +451,18 @@ const ProjectForm = () => {
                                 className="input-field flex-1"
                                 placeholder="Add technology (e.g., React, Node.js)"
                             />
+                            <div className="relative">
+                                <select
+                                    value={techCategory}
+                                    onChange={(e) => setTechCategory(e.target.value)}
+                                    className="input-field appearance-none pr-8 min-w-[130px] text-sm"
+                                >
+                                    {techCategories.map(cat => (
+                                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                    ))}
+                                </select>
+                                <FiChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
+                            </div>
                             <button
                                 type="button"
                                 onClick={handleAddTech}
@@ -436,23 +472,44 @@ const ProjectForm = () => {
                             </button>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                            {formData.techStack.map((tech, index) => (
-                                <span
-                                    key={index}
-                                    className="px-3 py-1 bg-primary-600/20 text-primary-400 rounded-full text-sm flex items-center gap-2"
-                                >
-                                    {tech}
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemoveTech(tech)}
-                                        className="hover:text-red-400"
-                                    >
-                                        <FiX size={14} />
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
+                        {/* Grouped tech display */}
+                        {(() => {
+                            const normalized = normalizeTechStack(formData.techStack);
+                            const groups = {};
+                            normalized.forEach(item => {
+                                (groups[item.category] = groups[item.category] || []).push(item);
+                            });
+                            const categoryOrder = ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'];
+                            return categoryOrder.map(cat => {
+                                const items = groups[cat];
+                                if (!items || items.length === 0) return null;
+                                const catInfo = techCategories.find(c => c.value === cat);
+                                return (
+                                    <div key={cat} className="mb-3">
+                                        <span className={`inline-block text-xs font-semibold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded border ${catInfo?.color || 'text-gray-400'}`}>
+                                            {cat}
+                                        </span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {items.map((tech, index) => (
+                                                <span
+                                                    key={index}
+                                                    className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 border ${catInfo?.color || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}
+                                                >
+                                                    {tech.name}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveTech(tech)}
+                                                        className="hover:text-red-400 transition-colors"
+                                                    >
+                                                        <FiX size={14} />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            });
+                        })()}
                     </div>
 
                     {/* Images */}
