@@ -12,8 +12,9 @@ const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             maxPoolSize: 10,
-            serverSelectionTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 30000,
             socketTimeoutMS: 45000,
+            connectTimeoutMS: 30000,
         });
 
         cachedConnection = conn;
@@ -21,7 +22,7 @@ const connectDB = async () => {
         return conn;
     } catch (error) {
         console.error('Database Connection Error: ' + error.message);
-        // Don't call process.exit(1) in serverless — it kills the function
+        // Don't call process.exit() in serverless — it kills the function
         throw error;
     }
 };
