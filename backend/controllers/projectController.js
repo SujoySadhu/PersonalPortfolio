@@ -1,6 +1,5 @@
 const Project = require('../models/Project');
-const fs = require('fs');
-const path = require('path');
+const { cloudinary } = require('../config/cloudinary');
 
 // Helper: parse techStack from FormData into [{name, category}] objects
 const parseTechStack = (raw) => {
@@ -94,7 +93,7 @@ exports.createProject = async (req, res) => {
     try {
         // Handle uploaded files
         if (req.files && req.files.length > 0) {
-            const imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+            const imageUrls = req.files.map(file => file.path);
             req.body.images = imageUrls;
             if (imageUrls.length > 0) {
                 req.body.thumbnail = imageUrls[0];
@@ -153,7 +152,7 @@ exports.updateProject = async (req, res) => {
 
         // Append newly uploaded files
         if (req.files && req.files.length > 0) {
-            const newImageUrls = req.files.map(file => `/uploads/${file.filename}`);
+            const newImageUrls = req.files.map(file => file.path);
             updatedImages = [...updatedImages, ...newImageUrls];
         }
 
@@ -210,14 +209,19 @@ exports.deleteProject = async (req, res) => {
             });
         }
 
-        // Delete associated images from uploads folder
+        // Delete associated images from Cloudinary
         if (project.images && project.images.length > 0) {
-            project.images.forEach(imagePath => {
-                const fullPath = path.join(__dirname, '..', imagePath);
-                if (fs.existsSync(fullPath)) {
-                    fs.unlinkSync(fullPath);
+            for (const imageUrl of project.images) {
+                try {
+                    // Extract public_id from Cloudinary URL
+                    const parts = imageUrl.split('/');
+                    const folder = parts[parts.length - 2];
+                    const filename = parts[parts.length - 1].split('.')[0];
+                    await cloudinary.uploader.destroy(`${folder}/${filename}`);
+                } catch (e) {
+                    console.error('Cloudinary delete error:', e.message);
                 }
-            });
+            }
         }
 
         await Project.findByIdAndDelete(req.params.id);
@@ -263,10 +267,14 @@ exports.removeImage = async (req, res) => {
         // Update thumbnail if needed
         project.thumbnail = project.images.length > 0 ? project.images[0] : '';
 
-        // Delete the physical file
-        const fullPath = path.join(__dirname, '..', imagePath);
-        if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
+        // Delete from Cloudinary
+        try {
+            const parts = imagePath.split('/');
+            const folder = parts[parts.length - 2];
+            const filename = parts[parts.length - 1].split('.')[0];
+            await cloudinary.uploader.destroy(`${folder}/${filename}`);
+        } catch (e) {
+            console.error('Cloudinary delete error:', e.message);
         }
 
         await project.save();

@@ -1,6 +1,5 @@
 const Settings = require('../models/Settings');
-const path = require('path');
-const fs = require('fs');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Get settings
 // @route   GET /api/settings
@@ -89,15 +88,19 @@ exports.uploadProfileImage = async (req, res) => {
 
         let settings = await Settings.findOne();
         
-        // Delete old profile image if exists
-        if (settings?.profileImage) {
-            const oldImagePath = path.join(__dirname, '..', settings.profileImage);
-            if (fs.existsSync(oldImagePath)) {
-                fs.unlinkSync(oldImagePath);
+        // Delete old profile image from Cloudinary if exists
+        if (settings?.profileImage && settings.profileImage.includes('cloudinary')) {
+            try {
+                const parts = settings.profileImage.split('/');
+                const folder = parts[parts.length - 2];
+                const filename = parts[parts.length - 1].split('.')[0];
+                await cloudinary.uploader.destroy(`${folder}/${filename}`);
+            } catch (e) {
+                console.error('Cloudinary delete error:', e.message);
             }
         }
         
-        const profileImage = `/uploads/${req.file.filename}`;
+        const profileImage = req.file.path; // Cloudinary URL
         
         if (!settings) {
             settings = await Settings.create({ profileImage });

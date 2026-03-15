@@ -1,6 +1,5 @@
 const Achievement = require('../models/Achievement');
-const path = require('path');
-const fs = require('fs');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Get all achievements
 // @route   GET /api/achievements
@@ -62,7 +61,7 @@ exports.getAchievement = async (req, res) => {
 exports.createAchievement = async (req, res) => {
     try {
         if (req.file) {
-            req.body.image = `/uploads/${req.file.filename}`;
+            req.body.image = req.file.path; // Cloudinary URL
         }
 
         const achievement = await Achievement.create(req.body);
@@ -95,14 +94,18 @@ exports.updateAchievement = async (req, res) => {
         }
 
         if (req.file) {
-            // Delete old image if exists
-            if (achievement.image) {
-                const oldImagePath = path.join(__dirname, '..', achievement.image);
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
+            // Delete old image from Cloudinary if exists
+            if (achievement.image && achievement.image.includes('cloudinary')) {
+                try {
+                    const parts = achievement.image.split('/');
+                    const folder = parts[parts.length - 2];
+                    const filename = parts[parts.length - 1].split('.')[0];
+                    await cloudinary.uploader.destroy(`${folder}/${filename}`);
+                } catch (e) {
+                    console.error('Cloudinary delete error:', e.message);
                 }
             }
-            req.body.image = `/uploads/${req.file.filename}`;
+            req.body.image = req.file.path; // Cloudinary URL
         }
 
         achievement = await Achievement.findByIdAndUpdate(req.params.id, req.body, {
@@ -137,11 +140,15 @@ exports.deleteAchievement = async (req, res) => {
             });
         }
 
-        // Delete image if exists
-        if (achievement.image) {
-            const imagePath = path.join(__dirname, '..', achievement.image);
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
+        // Delete image from Cloudinary if exists
+        if (achievement.image && achievement.image.includes('cloudinary')) {
+            try {
+                const parts = achievement.image.split('/');
+                const folder = parts[parts.length - 2];
+                const filename = parts[parts.length - 1].split('.')[0];
+                await cloudinary.uploader.destroy(`${folder}/${filename}`);
+            } catch (e) {
+                console.error('Cloudinary delete error:', e.message);
             }
         }
 

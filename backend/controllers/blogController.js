@@ -1,6 +1,5 @@
 const Blog = require('../models/Blog');
-const path = require('path');
-const fs = require('fs');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Get all blog posts
 // @route   GET /api/blogs
@@ -122,7 +121,7 @@ exports.createBlog = async (req, res) => {
 
         // Handle cover image upload
         if (req.file) {
-            blogData.coverImage = `/uploads/${req.file.filename}`;
+            blogData.coverImage = req.file.path; // Cloudinary URL
         }
 
         const blog = await Blog.create(blogData);
@@ -175,14 +174,18 @@ exports.updateBlog = async (req, res) => {
 
         // Handle cover image upload
         if (req.file) {
-            // Delete old image if exists
-            if (blog.coverImage) {
-                const oldImagePath = path.join(__dirname, '..', blog.coverImage);
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
+            // Delete old cover image from Cloudinary if exists
+            if (blog.coverImage && blog.coverImage.includes('cloudinary')) {
+                try {
+                    const parts = blog.coverImage.split('/');
+                    const folder = parts[parts.length - 2];
+                    const filename = parts[parts.length - 1].split('.')[0];
+                    await cloudinary.uploader.destroy(`${folder}/${filename}`);
+                } catch (e) {
+                    console.error('Cloudinary delete error:', e.message);
                 }
             }
-            updateData.coverImage = `/uploads/${req.file.filename}`;
+            updateData.coverImage = req.file.path; // Cloudinary URL
         }
 
         blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
@@ -217,11 +220,15 @@ exports.deleteBlog = async (req, res) => {
             });
         }
 
-        // Delete cover image if exists
-        if (blog.coverImage) {
-            const imagePath = path.join(__dirname, '..', blog.coverImage);
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
+        // Delete cover image from Cloudinary if exists
+        if (blog.coverImage && blog.coverImage.includes('cloudinary')) {
+            try {
+                const parts = blog.coverImage.split('/');
+                const folder = parts[parts.length - 2];
+                const filename = parts[parts.length - 1].split('.')[0];
+                await cloudinary.uploader.destroy(`${folder}/${filename}`);
+            } catch (e) {
+                console.error('Cloudinary delete error:', e.message);
             }
         }
 

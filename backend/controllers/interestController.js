@@ -74,7 +74,7 @@ exports.createInterest = async (req, res) => {
         }
 
         if (req.file) {
-            interestData.image = `/uploads/${req.file.filename}`;
+            interestData.image = req.file.path; // Cloudinary URL
         }
 
         const interest = await Interest.create(interestData);
@@ -121,7 +121,7 @@ exports.updateInterest = async (req, res) => {
         }
 
         if (req.file) {
-            updateData.image = `/uploads/${req.file.filename}`;
+            updateData.image = req.file.path; // Cloudinary URL
         }
 
         interest = await Interest.findByIdAndUpdate(req.params.id, updateData, {

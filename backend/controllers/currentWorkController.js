@@ -93,7 +93,7 @@ exports.createCurrentWork = async (req, res) => {
         if (expectedEndDate) workData.expectedEndDate = expectedEndDate;
 
         if (req.file) {
-            workData.image = `/uploads/${req.file.filename}`;
+            workData.image = req.file.path; // Cloudinary URL
         }
 
         const currentWork = await CurrentWork.create(workData);
@@ -154,7 +154,7 @@ exports.updateCurrentWork = async (req, res) => {
         }
 
         if (req.file) {
-            updateData.image = `/uploads/${req.file.filename}`;
+            updateData.image = req.file.path; // Cloudinary URL
         }
 
         currentWork = await CurrentWork.findByIdAndUpdate(req.params.id, updateData, {
