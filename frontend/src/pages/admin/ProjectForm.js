@@ -110,8 +110,10 @@ const ProjectForm = () => {
     });
     const [techInput, setTechInput] = useState('');
     const [techCategory, setTechCategory] = useState('Frontend');
-    const [images, setImages] = useState([]);
+    const [images, setImages] = useState([]); // New images: [{url, uploading, error, file}]
     const [existingImages, setExistingImages] = useState([]);
+    const [uploadingCount, setUploadingCount] = useState(0);
+    const [validationErrors, setValidationErrors] = useState({});
 
     useEffect(() => {
         fetchCategories();
@@ -212,9 +214,55 @@ const ProjectForm = () => {
         }));
     };
 
-    const handleImageChange = (e) => {
+    // Upload each image to Cloudinary one-at-a-time (bypasses Vercel 4.5MB limit)
+    const handleImageChange = async (e) => {
         const files = Array.from(e.target.files);
-        setImages(prev => [...prev, ...files]);
+        if (!files.length) return;
+
+        const token = localStorage.getItem('token');
+
+        for (const file of files) {
+            // Add placeholder with loading state
+            const tempId = Date.now() + '-' + Math.random();
+            setImages(prev => [...prev, { id: tempId, url: null, uploading: true, name: file.name }]);
+            setUploadingCount(prev => prev + 1);
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                const res = await fetch(`${BACKEND_URL}/api/upload/image`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `Upload failed (${res.status})`);
+                }
+
+                const json = await res.json();
+                if (json.success && json.url) {
+                    // Replace placeholder with actual URL
+                    setImages(prev => prev.map(img =>
+                        img.id === tempId ? { ...img, url: json.url, uploading: false } : img
+                    ));
+                } else {
+                    throw new Error('Upload failed — no URL returned');
+                }
+            } catch (err) {
+                console.error('Image upload error:', err);
+                // Mark as failed
+                setImages(prev => prev.map(img =>
+                    img.id === tempId ? { ...img, uploading: false, error: err.message } : img
+                ));
+            } finally {
+                setUploadingCount(prev => prev - 1);
+            }
+        }
+        // Reset file input
+        e.target.value = '';
     };
 
     const handleRemoveNewImage = (index) => {
@@ -236,6 +284,21 @@ const ProjectForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation
+        const errors = {};
+        if (!formData.title.trim()) errors.title = 'Project title is required';
+        if (uploadingCount > 0) errors.images = 'Please wait for all images to finish uploading';
+
+        const failedImages = images.filter(img => img.error);
+        if (failedImages.length > 0) errors.images = `${failedImages.length} image(s) failed to upload. Remove them and try again.`;
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        setValidationErrors({});
         setSaving(true);
 
         try {
@@ -244,7 +307,6 @@ const ProjectForm = () => {
             // Append text fields
             Object.keys(formData).forEach(key => {
                 if (key === 'techStack') {
-                    // Send as JSON array of {name, category} objects
                     const normalized = formData[key].map(item => {
                         if (typeof item === 'string') return { name: item, category: 'Tools' };
                         return { name: item.name, category: item.category || 'Tools' };
@@ -255,13 +317,11 @@ const ProjectForm = () => {
                 }
             });
 
-            // Append new images
-            images.forEach(image => {
-                data.append('images', image);
-            });
+            // Send Cloudinary URLs instead of files (no body size limit!)
+            const uploadedUrls = images.filter(img => img.url).map(img => img.url);
+            data.append('cloudinaryUrls', JSON.stringify(uploadedUrls));
 
             if (isEdit) {
-                // For edit, we might want to keep existing images
                 data.append('existingImages', JSON.stringify(existingImages));
                 await projectsAPI.update(id, data);
             } else {
@@ -271,7 +331,8 @@ const ProjectForm = () => {
             navigate('/admin/projects');
         } catch (error) {
             console.error('Error saving project:', error);
-            alert('Failed to save project');
+            const msg = error.response?.data?.message || 'Failed to save project. Please try again.';
+            alert(msg);
         } finally {
             setSaving(false);
         }
@@ -318,11 +379,11 @@ const ProjectForm = () => {
                                     type="text"
                                     name="title"
                                     value={formData.title}
-                                    onChange={handleChange}
-                                    className="input-field"
+                                    onChange={(e) => { handleChange(e); setValidationErrors(prev => ({...prev, title: ''})); }}
+                                    className={`input-field ${validationErrors.title ? 'border-red-500' : ''}`}
                                     placeholder="My Awesome Project"
-                                    required
                                 />
+                                {validationErrors.title && <p className="text-red-400 text-sm mt-1">{validationErrors.title}</p>}
                             </div>
 
                             <div>
@@ -339,7 +400,7 @@ const ProjectForm = () => {
                             </div>
 
                             <div>
-                                <label className="label">Full Description *</label>
+                                <label className="label">Full Description (optional)</label>
                                 <ReactQuill
                                     ref={quillRef}
                                     theme="snow"
@@ -575,12 +636,24 @@ const ProjectForm = () => {
                                 <p className="text-gray-400 text-sm mb-2">New Images</p>
                                 <div className="flex flex-wrap gap-4">
                                     {images.map((img, index) => (
-                                        <div key={index} className="relative group">
-                                            <img
-                                                src={URL.createObjectURL(img)}
-                                                alt={`New ${index + 1}`}
-                                                className="w-24 h-24 object-cover rounded-lg"
-                                            />
+                                        <div key={img.id || index} className="relative group">
+                                            {img.uploading ? (
+                                                <div className="w-24 h-24 rounded-lg bg-dark-200 flex flex-col items-center justify-center">
+                                                    <div className="w-6 h-6 border-2 border-primary-400/30 border-t-primary-400 rounded-full animate-spin mb-1"></div>
+                                                    <span className="text-gray-500 text-xs">Uploading</span>
+                                                </div>
+                                            ) : img.error ? (
+                                                <div className="w-24 h-24 rounded-lg bg-red-500/10 border border-red-500/30 flex flex-col items-center justify-center p-1">
+                                                    <FiX className="text-red-400 mb-1" size={16} />
+                                                    <span className="text-red-400 text-xs text-center leading-tight">Failed</span>
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={img.url}
+                                                    alt={`New ${index + 1}`}
+                                                    className="w-24 h-24 object-cover rounded-lg"
+                                                />
+                                            )}
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveNewImage(index)}
@@ -594,9 +667,11 @@ const ProjectForm = () => {
                             </div>
                         )}
 
+                        {validationErrors.images && <p className="text-red-400 text-sm mb-2">{validationErrors.images}</p>}
+
                         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-primary-500 transition-colors">
                             <FiImage className="text-gray-500 mb-2" size={32} />
-                            <span className="text-gray-400 text-sm">Click to upload images</span>
+                            <span className="text-gray-400 text-sm">{uploadingCount > 0 ? `Uploading ${uploadingCount} image(s)...` : 'Click to upload images'}</span>
                             <input
                                 type="file"
                                 multiple
@@ -618,13 +693,18 @@ const ProjectForm = () => {
                         </button>
                         <button
                             type="submit"
-                            disabled={saving}
+                            disabled={saving || uploadingCount > 0}
                             className="btn-primary flex items-center gap-2"
                         >
                             {saving ? (
                                 <>
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                     Saving...
+                                </>
+                            ) : uploadingCount > 0 ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    Uploading images...
                                 </>
                             ) : (
                                 <>

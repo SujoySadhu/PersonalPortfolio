@@ -91,13 +91,26 @@ exports.getProject = async (req, res) => {
 // @access  Private (Admin)
 exports.createProject = async (req, res) => {
     try {
-        // Handle uploaded files
+        // Handle uploaded files (traditional multer flow)
         if (req.files && req.files.length > 0) {
             const imageUrls = req.files.map(file => file.path);
             req.body.images = imageUrls;
             if (imageUrls.length > 0) {
                 req.body.thumbnail = imageUrls[0];
             }
+        }
+
+        // Handle pre-uploaded Cloudinary URLs (new one-at-a-time flow)
+        if (req.body.cloudinaryUrls) {
+            try {
+                const urls = JSON.parse(req.body.cloudinaryUrls);
+                if (Array.isArray(urls) && urls.length > 0) {
+                    req.body.images = [...(req.body.images || []), ...urls];
+                    if (!req.body.thumbnail) {
+                        req.body.thumbnail = urls[0];
+                    }
+                }
+            } catch (e) { /* ignore parse error */ }
         }
 
         // Parse techStack into [{name, category}] objects
@@ -150,10 +163,20 @@ exports.updateProject = async (req, res) => {
             updatedImages = project.images || [];
         }
 
-        // Append newly uploaded files
+        // Append newly uploaded files (traditional multer flow)
         if (req.files && req.files.length > 0) {
             const newImageUrls = req.files.map(file => file.path);
             updatedImages = [...updatedImages, ...newImageUrls];
+        }
+
+        // Append pre-uploaded Cloudinary URLs (new one-at-a-time flow)
+        if (req.body.cloudinaryUrls) {
+            try {
+                const urls = JSON.parse(req.body.cloudinaryUrls);
+                if (Array.isArray(urls) && urls.length > 0) {
+                    updatedImages = [...updatedImages, ...urls];
+                }
+            } catch (e) { /* ignore parse error */ }
         }
 
         // --- Explicitly update each field (avoids multer/Express 5 body quirks) ---

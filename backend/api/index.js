@@ -47,6 +47,19 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
+// General-purpose single image upload to Cloudinary
+// Used by forms (projects, achievements, etc.) to upload images one-at-a-time
+// This avoids Vercel's 4.5MB body size limit by uploading each image separately
+app.post('/api/upload/image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No image file provided' });
+    }
+    res.status(200).json({
+        success: true,
+        url: req.file.path // Cloudinary URL
+    });
+});
+
 // Editor image upload endpoint (for Quill rich-text editor)
 // Saves to Cloudinary and returns the URL
 app.post('/api/upload/editor-image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
