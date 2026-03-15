@@ -32,6 +32,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const allowedOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'https://sujoysadhu.vercel.app',
 ];
 
 app.use(cors({
