@@ -61,7 +61,9 @@ const ProjectForm = () => {
                     }
                     const json = await res.json();
                     if (json.success && json.url) {
-                        uploadedUrls.push(`${BACKEND_URL}${json.url}`);
+                        // Cloudinary returns full URLs, no need to prepend BACKEND_URL
+                        const imageUrl = json.url.startsWith('http') ? json.url : `${BACKEND_URL}${json.url}`;
+                        uploadedUrls.push(imageUrl);
                     }
                 } catch (err) {
                     console.error('Editor image upload error:', err);
