@@ -227,18 +227,41 @@ exports.deleteProject = async (req, res) => {
             });
         }
 
-        // Delete associated images from Cloudinary
-        if (project.images && project.images.length > 0) {
-            for (const imageUrl of project.images) {
-                try {
-                    // Extract public_id from Cloudinary URL
-                    const parts = imageUrl.split('/');
-                    const folder = parts[parts.length - 2];
-                    const filename = parts[parts.length - 1].split('.')[0];
-                    await cloudinary.uploader.destroy(`${folder}/${filename}`);
-                } catch (e) {
-                    console.error('Cloudinary delete error:', e.message);
-                }
+        // Collect all Cloudinary URLs associated with this project to delete
+        const urlsToDelete = [];
+
+        // 1. Legacy images array (if any remain)
+        if (project.images && Array.isArray(project.images)) {
+            urlsToDelete.push(...project.images);
+        }
+
+        // 2. Embedded images in rich-text description
+        if (project.description) {
+            // Match all Cloudinary URLs inside the HTML string
+            const regex = /https:\/\/res\.cloudinary\.com\/[^\s'"]+\/portfolio\/[^\s'"]+/g;
+            const matches = project.description.match(regex);
+            if (matches) {
+                urlsToDelete.push(...matches);
+            }
+        }
+
+        // Ensure array is unique to avoid triggering duplicate deletions if an image was copied twice
+        const uniqueUrls = [...new Set(urlsToDelete)];
+
+        // Delete all collected Cloudinary assets
+        for (const imageUrl of uniqueUrls) {
+            try {
+                if (!imageUrl.includes('cloudinary')) continue;
+                // Extract public_id from Cloudinary URL
+                // Format typically ends with .../portfolio/filename.jpg
+                const parts = imageUrl.split('/');
+                const folder = parts[parts.length - 2];
+                const filename = parts[parts.length - 1].split('.')[0];
+                
+                await cloudinary.uploader.destroy(`${folder}/${filename}`);
+                console.log(`[Cloudinary] Successfully deleted orphan image: ${folder}/${filename}`);
+            } catch (e) {
+                console.error('[Cloudinary] Delete error:', e.message);
             }
         }
 
