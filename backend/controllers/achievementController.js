@@ -140,15 +140,33 @@ exports.deleteAchievement = async (req, res) => {
             });
         }
 
-        // Delete image from Cloudinary if exists
-        if (achievement.image && achievement.image.includes('cloudinary')) {
+        // Collect all Cloudinary URLs associated with this achievement to delete
+        const urlsToDelete = [];
+
+        if (achievement.image) {
+            urlsToDelete.push(achievement.image);
+        }
+
+        if (achievement.description) {
+            const regex = /https:\/\/res\.cloudinary\.com\/[^\s'"]+\/portfolio\/[^\s'"]+/g;
+            const matches = achievement.description.match(regex);
+            if (matches) {
+                urlsToDelete.push(...matches);
+            }
+        }
+
+        const uniqueUrls = [...new Set(urlsToDelete)];
+
+        for (const imageUrl of uniqueUrls) {
             try {
-                const parts = achievement.image.split('/');
+                if (!imageUrl.includes('cloudinary')) continue;
+                const parts = imageUrl.split('/');
                 const folder = parts[parts.length - 2];
                 const filename = parts[parts.length - 1].split('.')[0];
                 await cloudinary.uploader.destroy(`${folder}/${filename}`);
+                console.log(`[Cloudinary] Successfully deleted orphan achievement image: ${folder}/${filename}`);
             } catch (e) {
-                console.error('Cloudinary delete error:', e.message);
+                console.error('[Cloudinary] Delete error:', e.message);
             }
         }
 
