@@ -6,7 +6,7 @@ require('dotenv').config();
 const connectDB = require('../config/db');
 const errorHandler = require('../middleware/error');
 const { invalidateCache } = require('../middleware/cache');
-const { cloudinary } = require('../config/cloudinary');
+const { upload } = require('../config/cloudinary');
 
 const authRoutes = require('../routes/auth');
 const projectRoutes = require('../routes/projects');
@@ -21,22 +21,13 @@ const currentWorkRoutes = require('../routes/currentWork');
 const publicRoutes = require('../routes/public');
 const contactRoutes = require('../routes/contact');
 
-connectDB().catch(err => console.error('Initial DB connection failed:', err.message));
+connectDB();
 
 const app = express();
 
 app.use(compression());
-
-// Skip Express body parsing if Vercel has already parsed the body
-app.use((req, res, next) => {
-    if (req.body !== undefined && req.body !== null) {
-        return next(); // Vercel already parsed it
-    }
-    express.json({ limit: '50mb' })(req, res, (err) => {
-        if (err) return next(err);
-        express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
-    });
-});
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 const allowedOrigins = [
     'http://localhost:3000',
@@ -57,7 +48,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// General-purpose image upload to Cloudinary (base64 JSON approach — no multer needed)
+// General-purpose single image upload to Cloudinary (base64 JSON — bypasses Vercel stream issues)
 // Accepts: { "image": "data:image/...;base64,..." }
 app.post('/api/upload/image', require('../middleware/auth').protect, async (req, res) => {
     try {
@@ -65,6 +56,7 @@ app.post('/api/upload/image', require('../middleware/auth').protect, async (req,
         if (!image) {
             return res.status(400).json({ success: false, message: 'No image data provided' });
         }
+        const { cloudinary } = require('../config/cloudinary');
         const result = await cloudinary.uploader.upload(image, {
             folder: 'portfolio',
             resource_type: 'image',
@@ -83,29 +75,16 @@ app.post('/api/upload/image', require('../middleware/auth').protect, async (req,
     }
 });
 
-// Editor image upload endpoint (for Quill rich-text editor) — same base64 approach
-app.post('/api/upload/editor-image', require('../middleware/auth').protect, async (req, res) => {
-    try {
-        const { image } = req.body;
-        if (!image) {
-            return res.status(400).json({ success: false, message: 'No image data provided' });
-        }
-        const result = await cloudinary.uploader.upload(image, {
-            folder: 'portfolio',
-            resource_type: 'image',
-            transformation: [
-                { width: 1920, height: 1920, crop: 'limit' },
-                { quality: 'auto', fetch_format: 'auto' }
-            ]
-        });
-        res.status(200).json({
-            success: true,
-            url: result.secure_url
-        });
-    } catch (error) {
-        console.error('Editor image upload error:', error);
-        res.status(500).json({ success: false, message: 'Image upload failed', error: error.message });
+// Editor image upload endpoint (for Quill rich-text editor)
+// Saves to Cloudinary and returns the URL
+app.post('/api/upload/editor-image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No image file provided' });
     }
+    res.status(200).json({
+        success: true,
+        url: req.file.path // Cloudinary URL
+    });
 });
 
 // Cache invalidation for write operations — MUST be before routes

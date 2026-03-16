@@ -1,5 +1,4 @@
 const Interest = require('../models/Interest');
-const { uploadToCloudinary } = require('../config/cloudinary');
 
 // @desc    Get all interests
 // @route   GET /api/interests
@@ -75,8 +74,7 @@ exports.createInterest = async (req, res) => {
         }
 
         if (req.file) {
-            const result = await uploadToCloudinary(req.file.buffer);
-            interestData.image = result.secure_url;
+            interestData.image = req.file.path; // Cloudinary URL
         }
 
         const interest = await Interest.create(interestData);
@@ -123,8 +121,7 @@ exports.updateInterest = async (req, res) => {
         }
 
         if (req.file) {
-            const result = await uploadToCloudinary(req.file.buffer);
-            updateData.image = result.secure_url;
+            updateData.image = req.file.path; // Cloudinary URL
         }
 
         interest = await Interest.findByIdAndUpdate(req.params.id, updateData, {

@@ -1,8 +1,8 @@
 /**
- * Upload Middleware — Memory-based (Vercel serverless compatible)
+ * Upload Middleware — Cloudinary-based
  * 
- * Uses multer memoryStorage instead of disk/cloudinary storage.
- * The uploaded file buffer is available at req.file.buffer.
+ * Uses multer-storage-cloudinary instead of disk storage.
+ * The uploaded file URL is available at req.file.path (Cloudinary URL).
  * 
  * For multi-file uploads (projects), use upload.array('images', 10).
  * For single file uploads, use upload.single('fieldName').

@@ -1,5 +1,5 @@
 const Settings = require('../models/Settings');
-const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Get settings
 // @route   GET /api/settings
@@ -100,8 +100,7 @@ exports.uploadProfileImage = async (req, res) => {
             }
         }
         
-        const result = await uploadToCloudinary(req.file.buffer);
-        const profileImage = result.secure_url;
+        const profileImage = req.file.path; // Cloudinary URL
         
         if (!settings) {
             settings = await Settings.create({ profileImage });
