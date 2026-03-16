@@ -157,9 +157,9 @@ exports.deleteAchievement = async (req, res) => {
 
         const uniqueUrls = [...new Set(urlsToDelete)];
 
-        for (const imageUrl of uniqueUrls) {
+        await Promise.all(uniqueUrls.map(async (imageUrl) => {
             try {
-                if (!imageUrl.includes('cloudinary')) continue;
+                if (!imageUrl.includes('cloudinary')) return;
                 const parts = imageUrl.split('/');
                 const folder = parts[parts.length - 2];
                 const filename = parts[parts.length - 1].split('.')[0];
@@ -168,7 +168,7 @@ exports.deleteAchievement = async (req, res) => {
             } catch (e) {
                 console.error('[Cloudinary] Delete error:', e.message);
             }
-        }
+        }));
 
         await achievement.deleteOne();
 

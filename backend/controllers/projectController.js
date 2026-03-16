@@ -248,10 +248,10 @@ exports.deleteProject = async (req, res) => {
         // Ensure array is unique to avoid triggering duplicate deletions if an image was copied twice
         const uniqueUrls = [...new Set(urlsToDelete)];
 
-        // Delete all collected Cloudinary assets
-        for (const imageUrl of uniqueUrls) {
+        // Delete all collected Cloudinary assets concurrently to avoid Vercel timeouts
+        await Promise.all(uniqueUrls.map(async (imageUrl) => {
             try {
-                if (!imageUrl.includes('cloudinary')) continue;
+                if (!imageUrl.includes('cloudinary')) return;
                 // Extract public_id from Cloudinary URL
                 // Format typically ends with .../portfolio/filename.jpg
                 const parts = imageUrl.split('/');
@@ -263,7 +263,7 @@ exports.deleteProject = async (req, res) => {
             } catch (e) {
                 console.error('[Cloudinary] Delete error:', e.message);
             }
-        }
+        }));
 
         await Project.findByIdAndDelete(req.params.id);
 
