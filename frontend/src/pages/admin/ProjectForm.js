@@ -33,7 +33,7 @@ const ProjectForm = () => {
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState(defaultCategories);
 
-    // Custom image handler: uploads to server, supports multi-select
+    // Custom image handler: uploads to server as base64, supports multi-select
     const imageHandler = useCallback(() => {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
@@ -47,13 +47,22 @@ const ProjectForm = () => {
             const uploadedUrls = [];
 
             for (const file of files) {
-                const data = new FormData();
-                data.append('image', file);
                 try {
+                    // Convert file to base64 data URI
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+
                     const res = await fetch(`${BACKEND_URL}/api/upload/editor-image`, {
                         method: 'POST',
-                        headers: { Authorization: `Bearer ${token}` },
-                        body: data,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ image: base64 }),
                     });
                     if (!res.ok) {
                         console.error('Upload failed:', res.status);
@@ -61,7 +70,6 @@ const ProjectForm = () => {
                     }
                     const json = await res.json();
                     if (json.success && json.url) {
-                        // Cloudinary returns full URLs, no need to prepend BACKEND_URL
                         const imageUrl = json.url.startsWith('http') ? json.url : `${BACKEND_URL}${json.url}`;
                         uploadedUrls.push(imageUrl);
                     }
@@ -214,7 +222,7 @@ const ProjectForm = () => {
         }));
     };
 
-    // Upload each image to Cloudinary one-at-a-time (bypasses Vercel 4.5MB limit)
+    // Upload each image to Cloudinary one-at-a-time as base64 JSON
     const handleImageChange = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
@@ -228,13 +236,21 @@ const ProjectForm = () => {
             setUploadingCount(prev => prev + 1);
 
             try {
-                const formData = new FormData();
-                formData.append('image', file);
+                // Convert file to base64 data URI
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
 
                 const res = await fetch(`${BACKEND_URL}/api/upload/image`, {
                     method: 'POST',
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: formData,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ image: base64 }),
                 });
 
                 if (!res.ok) {
