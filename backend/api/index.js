@@ -6,7 +6,7 @@ require('dotenv').config();
 const connectDB = require('../config/db');
 const errorHandler = require('../middleware/error');
 const { invalidateCache } = require('../middleware/cache');
-const { upload } = require('../config/cloudinary');
+const { upload, uploadToCloudinary } = require('../config/cloudinary');
 
 const authRoutes = require('../routes/auth');
 const projectRoutes = require('../routes/projects');
@@ -49,28 +49,38 @@ app.use(cors({
 }));
 
 // General-purpose single image upload to Cloudinary
-// Used by forms (projects, achievements, etc.) to upload images one-at-a-time
-// This avoids Vercel's 4.5MB body size limit by uploading each image separately
-app.post('/api/upload/image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No image file provided' });
+// Uses memoryStorage + manual Cloudinary upload (reliable on Vercel serverless)
+app.post('/api/upload/image', require('../middleware/auth').protect, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No image file provided' });
+        }
+        const result = await uploadToCloudinary(req.file.buffer);
+        res.status(200).json({
+            success: true,
+            url: result.secure_url
+        });
+    } catch (error) {
+        console.error('Image upload error:', error);
+        res.status(500).json({ success: false, message: 'Image upload failed' });
     }
-    res.status(200).json({
-        success: true,
-        url: req.file.path // Cloudinary URL
-    });
 });
 
 // Editor image upload endpoint (for Quill rich-text editor)
-// Saves to Cloudinary and returns the URL
-app.post('/api/upload/editor-image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No image file provided' });
+app.post('/api/upload/editor-image', require('../middleware/auth').protect, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No image file provided' });
+        }
+        const result = await uploadToCloudinary(req.file.buffer);
+        res.status(200).json({
+            success: true,
+            url: result.secure_url
+        });
+    } catch (error) {
+        console.error('Editor image upload error:', error);
+        res.status(500).json({ success: false, message: 'Image upload failed' });
     }
-    res.status(200).json({
-        success: true,
-        url: req.file.path // Cloudinary URL
-    });
 });
 
 // Cache invalidation for write operations — MUST be before routes

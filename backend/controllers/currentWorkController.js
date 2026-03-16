@@ -1,4 +1,5 @@
 const CurrentWork = require('../models/CurrentWork');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 // @desc    Get all current work items
 // @route   GET /api/current-work
@@ -93,7 +94,8 @@ exports.createCurrentWork = async (req, res) => {
         if (expectedEndDate) workData.expectedEndDate = expectedEndDate;
 
         if (req.file) {
-            workData.image = req.file.path; // Cloudinary URL
+            const result = await uploadToCloudinary(req.file.buffer);
+            workData.image = result.secure_url;
         }
 
         const currentWork = await CurrentWork.create(workData);
@@ -154,7 +156,8 @@ exports.updateCurrentWork = async (req, res) => {
         }
 
         if (req.file) {
-            updateData.image = req.file.path; // Cloudinary URL
+            const result = await uploadToCloudinary(req.file.buffer);
+            updateData.image = result.secure_url;
         }
 
         currentWork = await CurrentWork.findByIdAndUpdate(req.params.id, updateData, {

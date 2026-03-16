@@ -1,5 +1,5 @@
 const Achievement = require('../models/Achievement');
-const { cloudinary } = require('../config/cloudinary');
+const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 
 // @desc    Get all achievements
 // @route   GET /api/achievements
@@ -61,7 +61,8 @@ exports.getAchievement = async (req, res) => {
 exports.createAchievement = async (req, res) => {
     try {
         if (req.file) {
-            req.body.image = req.file.path; // Cloudinary URL
+            const result = await uploadToCloudinary(req.file.buffer);
+            req.body.image = result.secure_url;
         }
 
         const achievement = await Achievement.create(req.body);
@@ -105,7 +106,8 @@ exports.updateAchievement = async (req, res) => {
                     console.error('Cloudinary delete error:', e.message);
                 }
             }
-            req.body.image = req.file.path; // Cloudinary URL
+            const uploadResult = await uploadToCloudinary(req.file.buffer);
+            req.body.image = uploadResult.secure_url;
         }
 
         achievement = await Achievement.findByIdAndUpdate(req.params.id, req.body, {

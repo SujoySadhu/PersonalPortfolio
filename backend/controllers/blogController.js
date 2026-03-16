@@ -1,5 +1,5 @@
 const Blog = require('../models/Blog');
-const { cloudinary } = require('../config/cloudinary');
+const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 
 // @desc    Get all blog posts
 // @route   GET /api/blogs
@@ -121,7 +121,8 @@ exports.createBlog = async (req, res) => {
 
         // Handle cover image upload
         if (req.file) {
-            blogData.coverImage = req.file.path; // Cloudinary URL
+            const uploadResult = await uploadToCloudinary(req.file.buffer);
+            blogData.coverImage = uploadResult.secure_url;
         }
 
         const blog = await Blog.create(blogData);
@@ -185,7 +186,8 @@ exports.updateBlog = async (req, res) => {
                     console.error('Cloudinary delete error:', e.message);
                 }
             }
-            updateData.coverImage = req.file.path; // Cloudinary URL
+            const uploadResult = await uploadToCloudinary(req.file.buffer);
+            updateData.coverImage = uploadResult.secure_url;
         }
 
         blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
