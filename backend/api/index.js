@@ -26,8 +26,17 @@ connectDB().catch(err => console.error('Initial DB connection failed:', err.mess
 const app = express();
 
 app.use(compression());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Skip Express body parsing if Vercel has already parsed the body
+app.use((req, res, next) => {
+    if (req.body !== undefined && req.body !== null) {
+        return next(); // Vercel already parsed it
+    }
+    express.json({ limit: '50mb' })(req, res, (err) => {
+        if (err) return next(err);
+        express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
+    });
+});
 
 const allowedOrigins = [
     'http://localhost:3000',
