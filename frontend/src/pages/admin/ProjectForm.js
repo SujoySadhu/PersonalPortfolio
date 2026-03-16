@@ -303,30 +303,27 @@ const ProjectForm = () => {
         setSaving(true);
 
         try {
-            const data = new FormData();
+            // Normalize techStack
+            const normalizedTechStack = normalizeTechStack(formData.techStack).map(item => ({
+                name: item.name,
+                category: item.category || 'Tools'
+            }));
 
-            // Append text fields
-            Object.keys(formData).forEach(key => {
-                if (key === 'techStack') {
-                    const normalized = formData[key].map(item => {
-                        if (typeof item === 'string') return { name: item, category: 'Tools' };
-                        return { name: item.name, category: item.category || 'Tools' };
-                    });
-                    data.append(key, JSON.stringify(normalized));
-                } else {
-                    data.append(key, formData[key]);
-                }
-            });
-
-            // Send Cloudinary URLs instead of files
+            // Collect pre-uploaded Cloudinary URLs from the image picker
             const uploadedUrls = images.filter(img => img.url).map(img => img.url);
-            data.append('cloudinaryUrls', JSON.stringify(uploadedUrls));
+
+            // Build a plain JSON payload — works reliably on Vercel without multer
+            const payload = {
+                ...formData,
+                techStack: normalizedTechStack,
+                cloudinaryUrls: uploadedUrls,
+            };
 
             if (isEdit) {
-                data.append('existingImages', JSON.stringify(existingImages));
-                await projectsAPI.update(id, data);
+                payload.existingImages = existingImages;
+                await projectsAPI.update(id, payload);
             } else {
-                await projectsAPI.create(data);
+                await projectsAPI.create(payload);
             }
 
             navigate('/admin/projects');

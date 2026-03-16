@@ -63,7 +63,7 @@ app.post('/api/upload/image', require('../middleware/auth').protect, upload.sing
 
 // Editor image upload endpoint (for Quill rich-text editor)
 // Saves to Cloudinary and returns the URL
-app.post('/api/upload/editor-image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
+app.post('/api/upload/editor-image', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image file provided' });
     }

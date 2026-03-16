@@ -91,30 +91,18 @@ exports.getProject = async (req, res) => {
 // @access  Private (Admin)
 exports.createProject = async (req, res) => {
     try {
-        // Handle uploaded files (traditional multer flow)
-        if (req.files && req.files.length > 0) {
-            const imageUrls = req.files.map(file => file.path);
-            req.body.images = imageUrls;
-            if (imageUrls.length > 0) {
-                req.body.thumbnail = imageUrls[0];
-            }
+        // Handle pre-uploaded Cloudinary URLs sent as JSON array
+        const cloudinaryUrls = req.body.cloudinaryUrls;
+        if (Array.isArray(cloudinaryUrls) && cloudinaryUrls.length > 0) {
+            req.body.images = cloudinaryUrls;
+            req.body.thumbnail = cloudinaryUrls[0];
         }
 
-        // Handle pre-uploaded Cloudinary URLs (new one-at-a-time flow)
-        if (req.body.cloudinaryUrls) {
-            try {
-                const urls = JSON.parse(req.body.cloudinaryUrls);
-                if (Array.isArray(urls) && urls.length > 0) {
-                    req.body.images = [...(req.body.images || []), ...urls];
-                    if (!req.body.thumbnail) {
-                        req.body.thumbnail = urls[0];
-                    }
-                }
-            } catch (e) { /* ignore parse error */ }
-        }
-
-        // Parse techStack into [{name, category}] objects
+        // Parse techStack (already an array from JSON payload)
         req.body.techStack = parseTechStack(req.body.techStack);
+
+        // Remove cloudinaryUrls from what gets saved to DB
+        delete req.body.cloudinaryUrls;
 
         const project = await Project.create(req.body);
 
@@ -144,42 +132,23 @@ exports.updateProject = async (req, res) => {
             });
         }
 
-        // --- Handle images: merge kept existing images with new uploads ---
-        let updatedImages = [];
+        // Start with existing images from DB
+        let updatedImages = project.images || [];
 
-        if (req.body.existingImages) {
-            // Parse the JSON array of image paths the user chose to keep
-            try {
-                const kept = JSON.parse(req.body.existingImages);
-                if (Array.isArray(kept)) {
-                    updatedImages = kept;
-                }
-            } catch (e) {
-                // If parsing fails, fall back to current DB images
-                updatedImages = project.images || [];
-            }
-        } else {
-            // No existingImages field sent — preserve current images
-            updatedImages = project.images || [];
+        // existingImages is now a native array from JSON payload (images user chose to keep)
+        if (req.body.existingImages !== undefined) {
+            updatedImages = Array.isArray(req.body.existingImages)
+                ? req.body.existingImages
+                : [];
         }
 
-        // Append newly uploaded files (traditional multer flow)
-        if (req.files && req.files.length > 0) {
-            const newImageUrls = req.files.map(file => file.path);
-            updatedImages = [...updatedImages, ...newImageUrls];
+        // cloudinaryUrls is a native array of newly uploaded image URLs
+        const cloudinaryUrls = req.body.cloudinaryUrls;
+        if (Array.isArray(cloudinaryUrls) && cloudinaryUrls.length > 0) {
+            updatedImages = [...updatedImages, ...cloudinaryUrls];
         }
 
-        // Append pre-uploaded Cloudinary URLs (new one-at-a-time flow)
-        if (req.body.cloudinaryUrls) {
-            try {
-                const urls = JSON.parse(req.body.cloudinaryUrls);
-                if (Array.isArray(urls) && urls.length > 0) {
-                    updatedImages = [...updatedImages, ...urls];
-                }
-            } catch (e) { /* ignore parse error */ }
-        }
-
-        // --- Explicitly update each field (avoids multer/Express 5 body quirks) ---
+        // Update scalar fields
         if (req.body.title !== undefined) project.title = req.body.title;
         if (req.body.description !== undefined) project.description = req.body.description;
         if (req.body.shortDescription !== undefined) project.shortDescription = req.body.shortDescription;
@@ -188,14 +157,15 @@ exports.updateProject = async (req, res) => {
         if (req.body.githubLink !== undefined) project.githubLink = req.body.githubLink;
         if (req.body.category !== undefined) project.category = req.body.category;
         if (req.body.status !== undefined) project.status = req.body.status;
+        if (req.body.imageLayout !== undefined) project.imageLayout = req.body.imageLayout;
         if (req.body.order !== undefined) project.order = Number(req.body.order) || 0;
 
-        // Boolean from FormData arrives as string
+        // Boolean — from JSON it arrives already as boolean
         if (req.body.featured !== undefined) {
-            project.featured = req.body.featured === 'true' || req.body.featured === true;
+            project.featured = req.body.featured === true || req.body.featured === 'true';
         }
 
-        // Parse techStack into [{name, category}] objects
+        // Parse techStack
         if (req.body.techStack !== undefined) {
             project.techStack = parseTechStack(req.body.techStack);
         }

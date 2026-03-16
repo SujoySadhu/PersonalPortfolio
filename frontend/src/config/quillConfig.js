@@ -73,10 +73,11 @@ export const quillFormats = [
     'bold', 'italic', 'underline', 'strike',
     'color', 'background',
     'script',
-    'list', 'indent',
+    'list', 'bullet', 'indent',
     'align', 'direction',
-    'blockquote', 'code', 'code-block',
-    'link', 'image', 'video'
+    'blockquote', 'code-block',
+    'link', 'image', 'video',
+    'clean',
 ];
 
 // ============================================
@@ -89,9 +90,11 @@ export const quillToolbar = [
     ['bold', 'italic', 'underline', 'strike'],
     [{ 'script': 'sub' }, { 'script': 'super' }],
     [{ 'color': [] }, { 'background': [] }],
-    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-    [{ 'align': [] }, { 'direction': 'rtl' }],
-    ['blockquote', 'code', 'code-block'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ 'indent': '-1' }, { 'indent': '+1' }],
+    [{ 'align': [] }],
+    [{ 'direction': 'rtl' }],
+    ['blockquote', 'code-block'],
     ['link', 'image', 'video'],
     ['clean'],
 ];
@@ -105,11 +108,11 @@ export const quillToolbar = [
 // ============================================
 export function attachImageDeleteHandler(quillRef) {
     const editor = quillRef.current?.getEditor?.() || quillRef.current?.editor;
-    if (!editor) return () => {};
+    if (!editor) return () => { };
 
     const editorRoot = editor.root;
     const container = editorRoot.closest('.ql-container');
-    if (!container) return () => {};
+    if (!container) return () => { };
 
     // Ensure container is a positioning parent
     container.style.position = 'relative';

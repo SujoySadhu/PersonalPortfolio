@@ -67,13 +67,21 @@ export const clearApiCache = () => apiCache.clear();
  */
 export const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    // Already a full URL
-    if (imagePath.startsWith('http')) return imagePath;
+    // Already a full URL (Cloudinary, S3, etc.)
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
     // Data URI
     if (imagePath.startsWith('data:')) return imagePath;
-    // Ensure path starts with /
-    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    return `${BACKEND_URL}${cleanPath}`;
+    
+    // Partial Cloudinary path like "/uploads/portfolio/abc123" or "portfolio/abc123"
+    // Reconstruct the full Cloudinary URL
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'dho9r4mcd';
+    
+    // Strip optional leading slash and optional "uploads/" prefix
+    // e.g., "/uploads/portfolio/123" -> "portfolio/123"
+    // e.g., "portfolio/123" -> "portfolio/123"
+    const cleanedPath = imagePath.replace(/^\/?(uploads\/)?/, '');
+    
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${cleanedPath}`;
 };
 
 // ============================================
@@ -174,8 +182,8 @@ export const projectsAPI = {
         setCache(cacheKey, response);
         return response;
     },
-    create: (data) => { clearApiCache(); return api.post('/projects', data, { headers: { 'Content-Type': 'multipart/form-data' } }); },
-    update: (id, data) => { clearApiCache(); return api.put(`/projects/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+    create: (data) => { clearApiCache(); return api.post('/projects', data); },
+    update: (id, data) => { clearApiCache(); return api.put(`/projects/${id}`, data); },
     delete: (id) => { clearApiCache(); return api.delete(`/projects/${id}`); },
     toggleFeatured: (id) => { clearApiCache(); return api.put(`/projects/${id}/featured`); },
     removeImage: (id, imagePath) => { clearApiCache(); return api.put(`/projects/${id}/remove-image`, { imagePath }); }

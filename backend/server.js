@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const path = require('path');
@@ -65,7 +65,7 @@ app.post('/api/upload/editor-image', require('./middleware/auth').protect, uploa
     }
     res.status(200).json({
         success: true,
-        url: `/uploads/${req.file.filename}`
+        url: req.file.path // Full Cloudinary URL provided by multer-storage-cloudinary
     });
 });
 
