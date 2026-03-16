@@ -89,7 +89,13 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/projects', projectRoutes);
+
+app.use('/api/projects', (req, res, next) => {
+    console.log(`[VERCEL DEBUG] ${req.method} /api/projects`);
+    console.log(`[VERCEL DEBUG] req.body:`, JSON.stringify(req.body));
+    next();
+}, projectRoutes);
+
 app.use('/api/skills', skillRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/settings', settingsRoutes);
