@@ -26,8 +26,19 @@ connectDB();
 const app = express();
 
 app.use(compression());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// On Vercel, req.body is pre-parsed via a getter. express.json() may overwrite it.
+// Save it before, restore after if express.json() cleared it.
+app.use((req, res, next) => {
+    const vercelBody = req.body; // triggers Vercel's getter
+    express.json({ limit: '50mb' })(req, res, () => {
+        // If express.json() cleared the body but Vercel had parsed it, restore it
+        if ((!req.body || Object.keys(req.body).length === 0) && vercelBody && typeof vercelBody === 'object' && Object.keys(vercelBody).length > 0) {
+            req.body = vercelBody;
+        }
+        express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
+    });
+});
 
 const allowedOrigins = [
     'http://localhost:3000',
