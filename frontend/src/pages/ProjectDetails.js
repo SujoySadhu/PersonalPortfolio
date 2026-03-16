@@ -234,43 +234,6 @@ const ProjectDetails = () => {
                         </div>
                     </div>
                 )}
-
-                {/* Lightbox */}
-                {showLightbox && project.images && (
-                    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
-                        <button
-                            onClick={() => setShowLightbox(false)}
-                            className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                        >
-                            <FiX size={20} />
-                        </button>
-
-                        <button
-                            onClick={prevImage}
-                            className="absolute left-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                        >
-                            <FiChevronLeft size={24} />
-                        </button>
-
-                        <img
-                            src={getImageUrl(project.images[selectedImage])}
-                            alt={project.title}
-                            className="max-w-full max-h-[90vh] object-contain"
-                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/800x500?text=Image+Not+Available'; }}
-                        />
-
-                        <button
-                            onClick={nextImage}
-                            className="absolute right-4 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                        >
-                            <FiChevronRight size={24} />
-                        </button>
-
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm">
-                            {selectedImage + 1} / {project.images.length}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
