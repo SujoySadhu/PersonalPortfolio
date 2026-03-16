@@ -73,11 +73,10 @@ export const quillFormats = [
     'bold', 'italic', 'underline', 'strike',
     'color', 'background',
     'script',
-    'list', 'bullet', 'indent',
+    'list', 'indent',
     'align', 'direction',
-    'blockquote', 'code-block',
-    'link', 'image', 'video',
-    'clean',
+    'blockquote', 'code', 'code-block',
+    'link', 'image', 'video'
 ];
 
 // ============================================
@@ -90,11 +89,9 @@ export const quillToolbar = [
     ['bold', 'italic', 'underline', 'strike'],
     [{ 'script': 'sub' }, { 'script': 'super' }],
     [{ 'color': [] }, { 'background': [] }],
-    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-    [{ 'indent': '-1' }, { 'indent': '+1' }],
-    [{ 'align': [] }],
-    [{ 'direction': 'rtl' }],
-    ['blockquote', 'code-block'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+    [{ 'align': [] }, { 'direction': 'rtl' }],
+    ['blockquote', 'code', 'code-block'],
     ['link', 'image', 'video'],
     ['clean'],
 ];
