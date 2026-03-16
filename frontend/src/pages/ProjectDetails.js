@@ -64,17 +64,7 @@ const ProjectDetails = () => {
         return match ? match[1] : null;
     };
 
-    const nextImage = () => {
-        if (project?.images?.length > 0) {
-            setSelectedImage((prev) => (prev + 1) % project.images.length);
-        }
-    };
 
-    const prevImage = () => {
-        if (project?.images?.length > 0) {
-            setSelectedImage((prev) => (prev - 1 + project.images.length) % project.images.length);
-        }
-    };
 
     if (loading) {
         return <ProjectSkeleton />;
@@ -108,92 +98,7 @@ const ProjectDetails = () => {
                     {project.title}
                 </h1>
 
-                {/* Image Gallery */}
-                {project.images && project.images.length > 0 && (
-                    <div className="mb-8">
-                        {/* Grid Layout */}
-                        {project.imageLayout === 'grid' ? (
-                            <div className={`grid gap-3 ${project.images.length === 1 ? 'grid-cols-1' :
-                                project.images.length === 2 ? 'grid-cols-2' :
-                                    'grid-cols-2 md:grid-cols-3'
-                                }`}>
-                                {project.images.map((image, index) => (
-                                    <div
-                                        key={index}
-                                        className="relative rounded-xl overflow-hidden bg-dark-100 border border-gray-800/60 cursor-pointer group"
-                                        onClick={() => { setSelectedImage(index); setShowLightbox(true); }}
-                                    >
-                                        <img
-                                            src={getImageUrl(image)}
-                                            alt={`${project.title} ${index + 1}`}
-                                            className="w-full aspect-video object-cover transition-transform duration-300 group-hover:scale-105"
-                                            loading="lazy"
-                                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/800x500?text=Image+Not+Available'; }}
-                                        />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                                            <span className="text-white text-xs bg-black/50 px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">View</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            /* Carousel Layout (default) */
-                            <>
-                                <div className="relative rounded-2xl overflow-hidden bg-dark-100 border border-gray-800/60">
-                                    <img
-                                        src={getImageUrl(project.images[selectedImage])}
-                                        alt={project.title}
-                                        className="w-full aspect-video object-contain bg-dark-200 cursor-pointer"
-                                        onClick={() => setShowLightbox(true)}
-                                        loading="lazy"
-                                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/800x500?text=Image+Not+Available'; }}
-                                    />
-
-                                    {project.images.length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={prevImage}
-                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                                            >
-                                                <FiChevronLeft size={20} />
-                                            </button>
-                                            <button
-                                                onClick={nextImage}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                                            >
-                                                <FiChevronRight size={20} />
-                                            </button>
-                                        </>
-                                    )}
-
-                                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-white text-xs">
-                                        {selectedImage + 1} / {project.images.length}
-                                    </div>
-                                </div>
-
-                                {/* Thumbnails */}
-                                {project.images.length > 1 && (
-                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-                                        {project.images.map((image, index) => (
-                                            <img
-                                                key={index}
-                                                src={getImageUrl(image)}
-                                                alt={`${project.title} ${index + 1}`}
-                                                className={`w-16 h-11 object-cover rounded-lg cursor-pointer transition-all flex-shrink-0 ${selectedImage === index
-                                                    ? 'ring-2 ring-primary-500 opacity-100'
-                                                    : 'opacity-50 hover:opacity-80'
-                                                    }`}
-                                                onClick={() => setSelectedImage(index)}
-                                                loading="lazy"
-                                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/160x110?text=N/A'; }}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                )}
+                {/* Image Gallery removed as per request */}
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3 mb-8">
