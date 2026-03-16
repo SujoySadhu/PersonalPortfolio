@@ -113,11 +113,11 @@ const Home = () => {
                             </h1>
 
                             <p className="text-lg text-primary-400 font-medium mb-4">
-                                {settings?.title || 'Full Stack Developer'}
+                                Competitive Programmer, Full-stack Developer, AI/ML Enthusiast
                             </p>
 
                             <p className="text-gray-400 text-base leading-relaxed max-w-lg mb-6">
-                                {settings?.bio || "I'm a full-stack developer specializing in building exceptional digital experiences."}
+                                I am a Competitive Programmer and Full-Stack Developer passionate about problem-solving and algorithmic thinking. I actively enhance my skills in data structures and algorithms through contests and practice
                             </p>
 
                             {/* Info Row */}
