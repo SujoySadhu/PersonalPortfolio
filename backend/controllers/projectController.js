@@ -91,8 +91,22 @@ exports.getProject = async (req, res) => {
 // @access  Private (Admin)
 exports.createProject = async (req, res) => {
     try {
-        // Handle pre-uploaded Cloudinary URLs sent as JSON array
-        const cloudinaryUrls = req.body.cloudinaryUrls;
+        console.log("CREATE PROJECT REQUEST BODY:", JSON.stringify(req.body));
+        
+        // Handle pre-uploaded Cloudinary URLs sent as JSON array OR stringified JSON
+        let cloudinaryUrls = req.body.cloudinaryUrls;
+        
+        // If the frontend sent FormData, it might arrive as a stringified JSON array
+        if (typeof cloudinaryUrls === 'string') {
+            try {
+                cloudinaryUrls = JSON.parse(cloudinaryUrls);
+            } catch (err) {
+                console.error("Failed to parse cloudinaryUrls string:", err);
+            }
+        }
+        
+        console.log("Extracted cloudinaryUrls:", cloudinaryUrls);
+        
         if (Array.isArray(cloudinaryUrls) && cloudinaryUrls.length > 0) {
             req.body.images = cloudinaryUrls;
             req.body.thumbnail = cloudinaryUrls[0];
@@ -135,15 +149,26 @@ exports.updateProject = async (req, res) => {
         // Start with existing images from DB
         let updatedImages = project.images || [];
 
+        // Handle stringified arrays from older FormData frontend
+        let existingImagesRaw = req.body.existingImages;
+        if (typeof existingImagesRaw === 'string') {
+            try { existingImagesRaw = JSON.parse(existingImagesRaw); } catch (e) {}
+        }
+
         // existingImages is now a native array from JSON payload (images user chose to keep)
-        if (req.body.existingImages !== undefined) {
-            updatedImages = Array.isArray(req.body.existingImages)
-                ? req.body.existingImages
+        if (existingImagesRaw !== undefined) {
+            updatedImages = Array.isArray(existingImagesRaw)
+                ? existingImagesRaw
                 : [];
         }
 
+        // Handle stringified arrays from older FormData frontend for new images
+        let cloudinaryUrls = req.body.cloudinaryUrls;
+        if (typeof cloudinaryUrls === 'string') {
+            try { cloudinaryUrls = JSON.parse(cloudinaryUrls); } catch (e) {}
+        }
+
         // cloudinaryUrls is a native array of newly uploaded image URLs
-        const cloudinaryUrls = req.body.cloudinaryUrls;
         if (Array.isArray(cloudinaryUrls) && cloudinaryUrls.length > 0) {
             updatedImages = [...updatedImages, ...cloudinaryUrls];
         }
