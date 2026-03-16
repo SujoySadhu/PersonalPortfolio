@@ -110,9 +110,6 @@ const ProjectForm = () => {
     });
     const [techInput, setTechInput] = useState('');
     const [techCategory, setTechCategory] = useState('Frontend');
-    const [images, setImages] = useState([]); // New images: [{url, uploading, error, file}]
-    const [existingImages, setExistingImages] = useState([]);
-    const [uploadingCount, setUploadingCount] = useState(0);
     const [validationErrors, setValidationErrors] = useState({});
 
     useEffect(() => {
@@ -151,7 +148,6 @@ const ProjectForm = () => {
                 featured: project.featured || false,
                 imageLayout: project.imageLayout || 'carousel'
             });
-            setExistingImages(project.images || []);
         } catch (error) {
             console.error('Error fetching project:', error);
             alert('Failed to load project');
@@ -214,73 +210,7 @@ const ProjectForm = () => {
         }));
     };
 
-    // Upload each image to Cloudinary one-at-a-time (bypasses Vercel 4.5MB limit)
-    const handleImageChange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
-
-        const token = localStorage.getItem('token');
-
-        for (const file of files) {
-            // Add placeholder with loading state
-            const tempId = Date.now() + '-' + Math.random();
-            setImages(prev => [...prev, { id: tempId, url: null, uploading: true, name: file.name }]);
-            setUploadingCount(prev => prev + 1);
-
-            try {
-                const formData = new FormData();
-                formData.append('image', file);
-
-                const res = await fetch(`${BACKEND_URL}/api/upload/image`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: formData,
-                });
-
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.message || `Upload failed (${res.status})`);
-                }
-
-                const json = await res.json();
-                if (json.success && json.url) {
-                    // Replace placeholder with actual URL
-                    setImages(prev => prev.map(img =>
-                        img.id === tempId ? { ...img, url: json.url, uploading: false } : img
-                    ));
-                } else {
-                    throw new Error('Upload failed — no URL returned');
-                }
-            } catch (err) {
-                console.error('Image upload error:', err);
-                // Mark as failed
-                setImages(prev => prev.map(img =>
-                    img.id === tempId ? { ...img, uploading: false, error: err.message } : img
-                ));
-            } finally {
-                setUploadingCount(prev => prev - 1);
-            }
-        }
-        // Reset file input
-        e.target.value = '';
-    };
-
-    const handleRemoveNewImage = (index) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleRemoveExistingImage = async (index) => {
-        const imagePath = existingImages[index];
-        if (!window.confirm('Are you sure you want to remove this image? This cannot be undone.')) return;
-
-        try {
-            await projectsAPI.removeImage(id, imagePath);
-            setExistingImages(prev => prev.filter((_, i) => i !== index));
-        } catch (error) {
-            console.error('Error removing image:', error);
-            alert('Failed to remove image');
-        }
-    };
+    // Removed handleImageChange, handleRemoveNewImage, and handleRemoveExistingImage
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -288,10 +218,6 @@ const ProjectForm = () => {
         // Validation
         const errors = {};
         if (!formData.title.trim()) errors.title = 'Project title is required';
-        if (uploadingCount > 0) errors.images = 'Please wait for all images to finish uploading';
-
-        const failedImages = images.filter(img => img.error);
-        if (failedImages.length > 0) errors.images = `${failedImages.length} image(s) failed to upload. Remove them and try again.`;
 
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
@@ -317,12 +243,7 @@ const ProjectForm = () => {
                 }
             });
 
-            // Send Cloudinary URLs instead of files (no body size limit!)
-            const uploadedUrls = images.filter(img => img.url).map(img => img.url);
-            data.append('cloudinaryUrls', JSON.stringify(uploadedUrls));
-
             if (isEdit) {
-                data.append('existingImages', JSON.stringify(existingImages));
                 await projectsAPI.update(id, data);
             } else {
                 await projectsAPI.create(data);
@@ -575,113 +496,6 @@ const ProjectForm = () => {
                         })()}
                     </div>
 
-                    {/* Images */}
-                    <div className="card p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-semibold text-white">Images</h2>
-
-                            {/* Layout Toggle */}
-                            <div className="flex items-center gap-1 bg-dark-200 rounded-lg p-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, imageLayout: 'carousel' }))}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${formData.imageLayout === 'carousel'
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-gray-400 hover:text-white'
-                                        }`}
-                                >
-                                    <FiColumns size={14} /> Carousel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, imageLayout: 'grid' }))}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${formData.imageLayout === 'grid'
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-gray-400 hover:text-white'
-                                        }`}
-                                >
-                                    <FiGrid size={14} /> Grid
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Existing Images */}
-                        {existingImages.length > 0 && (
-                            <div className="mb-4">
-                                <p className="text-gray-400 text-sm mb-2">Existing Images</p>
-                                <div className="flex flex-wrap gap-4">
-                                    {existingImages.map((img, index) => (
-                                        <div key={index} className="relative group">
-                                            <img
-                                                src={getImageUrl(img)}
-                                                alt={`Existing ${index + 1}`}
-                                                className="w-24 h-24 object-cover rounded-lg"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveExistingImage(index)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <FiX size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* New Images */}
-                        {images.length > 0 && (
-                            <div className="mb-4">
-                                <p className="text-gray-400 text-sm mb-2">New Images</p>
-                                <div className="flex flex-wrap gap-4">
-                                    {images.map((img, index) => (
-                                        <div key={img.id || index} className="relative group">
-                                            {img.uploading ? (
-                                                <div className="w-24 h-24 rounded-lg bg-dark-200 flex flex-col items-center justify-center">
-                                                    <div className="w-6 h-6 border-2 border-primary-400/30 border-t-primary-400 rounded-full animate-spin mb-1"></div>
-                                                    <span className="text-gray-500 text-xs">Uploading</span>
-                                                </div>
-                                            ) : img.error ? (
-                                                <div className="w-24 h-24 rounded-lg bg-red-500/10 border border-red-500/30 flex flex-col items-center justify-center p-1">
-                                                    <FiX className="text-red-400 mb-1" size={16} />
-                                                    <span className="text-red-400 text-xs text-center leading-tight">Failed</span>
-                                                </div>
-                                            ) : (
-                                                <img
-                                                    src={img.url}
-                                                    alt={`New ${index + 1}`}
-                                                    className="w-24 h-24 object-cover rounded-lg"
-                                                />
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveNewImage(index)}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <FiX size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {validationErrors.images && <p className="text-red-400 text-sm mb-2">{validationErrors.images}</p>}
-
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-primary-500 transition-colors">
-                            <FiImage className="text-gray-500 mb-2" size={32} />
-                            <span className="text-gray-400 text-sm">{uploadingCount > 0 ? `Uploading ${uploadingCount} image(s)...` : 'Click to upload images'}</span>
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="hidden"
-                            />
-                        </label>
-                    </div>
-
                     {/* Submit */}
                     <div className="flex justify-end gap-4">
                         <button
@@ -693,18 +507,13 @@ const ProjectForm = () => {
                         </button>
                         <button
                             type="submit"
-                            disabled={saving || uploadingCount > 0}
+                            disabled={saving}
                             className="btn-primary flex items-center gap-2"
                         >
                             {saving ? (
                                 <>
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                     Saving...
-                                </>
-                            ) : uploadingCount > 0 ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    Uploading images...
                                 </>
                             ) : (
                                 <>
