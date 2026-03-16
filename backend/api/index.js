@@ -26,19 +26,8 @@ connectDB();
 const app = express();
 
 app.use(compression());
-
-// On Vercel, req.body is pre-parsed via a getter. express.json() may overwrite it.
-// Save it before, restore after if express.json() cleared it.
-app.use((req, res, next) => {
-    const vercelBody = req.body; // triggers Vercel's getter
-    express.json({ limit: '50mb' })(req, res, () => {
-        // If express.json() cleared the body but Vercel had parsed it, restore it
-        if ((!req.body || Object.keys(req.body).length === 0) && vercelBody && typeof vercelBody === 'object' && Object.keys(vercelBody).length > 0) {
-            req.body = vercelBody;
-        }
-        express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
-    });
-});
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 const allowedOrigins = [
     'http://localhost:3000',
@@ -59,31 +48,17 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// General-purpose single image upload to Cloudinary (base64 JSON — bypasses Vercel stream issues)
-// Accepts: { "image": "data:image/...;base64,..." }
-app.post('/api/upload/image', require('../middleware/auth').protect, async (req, res) => {
-    try {
-        const { image } = req.body;
-        if (!image) {
-            return res.status(400).json({ success: false, message: 'No image data provided' });
-        }
-        const { cloudinary } = require('../config/cloudinary');
-        const result = await cloudinary.uploader.upload(image, {
-            folder: 'portfolio',
-            resource_type: 'image',
-            transformation: [
-                { width: 1920, height: 1920, crop: 'limit' },
-                { quality: 'auto', fetch_format: 'auto' }
-            ]
-        });
-        res.status(200).json({
-            success: true,
-            url: result.secure_url
-        });
-    } catch (error) {
-        console.error('Image upload error:', error);
-        res.status(500).json({ success: false, message: 'Image upload failed', error: error.message });
+// General-purpose single image upload to Cloudinary
+// Used by forms (projects, achievements, etc.) to upload images one-at-a-time
+// This avoids Vercel's 4.5MB body size limit by uploading each image separately
+app.post('/api/upload/image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No image file provided' });
     }
+    res.status(200).json({
+        success: true,
+        url: req.file.path // Cloudinary URL
+    });
 });
 
 // Editor image upload endpoint (for Quill rich-text editor)

@@ -214,7 +214,7 @@ const ProjectForm = () => {
         }));
     };
 
-    // Upload each image to Cloudinary one-at-a-time as base64 JSON
+    // Upload each image to Cloudinary one-at-a-time (bypasses Vercel 4.5MB limit)
     const handleImageChange = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
@@ -228,21 +228,13 @@ const ProjectForm = () => {
             setUploadingCount(prev => prev + 1);
 
             try {
-                // Convert file to base64 data URI
-                const base64 = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
+                const formData = new FormData();
+                formData.append('image', file);
 
                 const res = await fetch(`${BACKEND_URL}/api/upload/image`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ image: base64 }),
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: formData,
                 });
 
                 if (!res.ok) {
