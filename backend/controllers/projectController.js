@@ -248,22 +248,23 @@ exports.deleteProject = async (req, res) => {
         // Ensure array is unique to avoid triggering duplicate deletions if an image was copied twice
         const uniqueUrls = [...new Set(urlsToDelete)];
 
-        // Delete all collected Cloudinary assets concurrently to avoid Vercel timeouts
-        await Promise.all(uniqueUrls.map(async (imageUrl) => {
+        if (uniqueUrls.length > 0) {
             try {
-                if (!imageUrl.includes('cloudinary')) return;
-                // Extract public_id from Cloudinary URL
-                // Format typically ends with .../portfolio/filename.jpg
-                const parts = imageUrl.split('/');
-                const folder = parts[parts.length - 2];
-                const filename = parts[parts.length - 1].split('.')[0];
+                const publicIds = uniqueUrls.filter(url => url && url.includes('cloudinary')).map(imageUrl => {
+                    const parts = imageUrl.split('/');
+                    const folder = parts[parts.length - 2];
+                    const filename = parts[parts.length - 1].split('.')[0];
+                    return `${folder}/${filename}`;
+                });
                 
-                await cloudinary.uploader.destroy(`${folder}/${filename}`);
-                console.log(`[Cloudinary] Successfully deleted orphan image: ${folder}/${filename}`);
+                if (publicIds.length > 0) {
+                    await cloudinary.api.delete_resources(publicIds);
+                    console.log(`[Cloudinary] Successfully batch deleted ${publicIds.length} orphan images.`);
+                }
             } catch (e) {
-                console.error('[Cloudinary] Delete error:', e.message);
+                console.error('[Cloudinary] Batch delete error:', e.message);
             }
-        }));
+        }
 
         await Project.findByIdAndDelete(req.params.id);
 

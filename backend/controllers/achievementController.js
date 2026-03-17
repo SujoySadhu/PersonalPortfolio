@@ -157,18 +157,23 @@ exports.deleteAchievement = async (req, res) => {
 
         const uniqueUrls = [...new Set(urlsToDelete)];
 
-        await Promise.all(uniqueUrls.map(async (imageUrl) => {
+        if (uniqueUrls.length > 0) {
             try {
-                if (!imageUrl.includes('cloudinary')) return;
-                const parts = imageUrl.split('/');
-                const folder = parts[parts.length - 2];
-                const filename = parts[parts.length - 1].split('.')[0];
-                await cloudinary.uploader.destroy(`${folder}/${filename}`);
-                console.log(`[Cloudinary] Successfully deleted orphan achievement image: ${folder}/${filename}`);
+                const publicIds = uniqueUrls.filter(url => url && url.includes('cloudinary')).map(imageUrl => {
+                    const parts = imageUrl.split('/');
+                    const folder = parts[parts.length - 2];
+                    const filename = parts[parts.length - 1].split('.')[0];
+                    return `${folder}/${filename}`;
+                });
+                
+                if (publicIds.length > 0) {
+                    await cloudinary.api.delete_resources(publicIds);
+                    console.log(`[Cloudinary] Successfully batch deleted ${publicIds.length} orphan achievement images.`);
+                }
             } catch (e) {
-                console.error('[Cloudinary] Delete error:', e.message);
+                console.error('[Cloudinary] Batch delete error:', e.message);
             }
-        }));
+        }
 
         await achievement.deleteOne();
 
