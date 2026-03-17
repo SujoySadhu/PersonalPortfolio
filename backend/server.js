@@ -107,5 +107,21 @@ app.use((req, res) => {
     res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    
+    // Self-ping mechanism to prevent sleeping on Koyeb/Render
+    // Pings the health endpoint every 14 minutes (840000 milliseconds)
+    const pingInterval = 14 * 60 * 1000; 
+    setInterval(async () => {
+        try {
+            // Adjust the URL if you have a specific custom domain on Koyeb
+            const url = process.env.SERVER_URL || `http://localhost:${PORT}`;
+            const response = await fetch(`${url}/api/health`);
+            console.log(`[Self-Ping] Status: ${response.status} at ${new Date().toISOString()}`);
+        } catch (error) {
+            console.error('[Self-Ping] Failed to keep server awake:', error.message);
+        }
+    }, pingInterval);
+});
