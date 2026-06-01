@@ -186,7 +186,12 @@ export const projectsAPI = {
     update: (id, data) => { clearApiCache(); return api.put(`/projects/${id}`, data); },
     delete: (id) => { clearApiCache(); return api.delete(`/projects/${id}`); },
     toggleFeatured: (id) => { clearApiCache(); return api.put(`/projects/${id}/featured`); },
-    removeImage: (id, imagePath) => { clearApiCache(); return api.put(`/projects/${id}/remove-image`, { imagePath }); }
+    removeImage: (id, imagePath) => { clearApiCache(); return api.put(`/projects/${id}/remove-image`, { imagePath }); },
+    // Upload a document (report, slide deck, etc.) → returns { url, originalName, format, bytes }
+    uploadDocument: (formData, onUploadProgress) => api.post('/upload/document', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress
+    })
 };
 
 // ============================================

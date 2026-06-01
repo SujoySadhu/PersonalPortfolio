@@ -2,49 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { skillsAPI, categoriesAPI } from '../services/api';
 import SkillCard from '../components/skills/SkillCard';
 import Loading from '../components/common/Loading';
-import {
-    FiCode, FiDatabase, FiServer, FiTool,
-    FiLayers, FiTerminal, FiGlobe, FiCpu
-} from 'react-icons/fi';
-
-const categoryIconMap = {
-    frontend: FiGlobe,
-    backend: FiServer,
-    database: FiDatabase,
-    devops: FiTerminal,
-    tools: FiTool,
-    languages: FiCode,
-    frameworks: FiLayers,
-    'ai-ml': FiCpu,
-    other: FiCpu,
-};
-
-const categoryColorMap = {
-    frontend: 'text-blue-400 bg-blue-500/10',
-    backend: 'text-emerald-400 bg-emerald-500/10',
-    database: 'text-violet-400 bg-violet-500/10',
-    devops: 'text-orange-400 bg-orange-500/10',
-    tools: 'text-cyan-400 bg-cyan-500/10',
-    languages: 'text-indigo-400 bg-indigo-500/10',
-    frameworks: 'text-teal-400 bg-teal-500/10',
-    'ai-ml': 'text-pink-400 bg-pink-500/10',
-    other: 'text-gray-400 bg-gray-500/10',
-};
+import { FiCode } from 'react-icons/fi';
+import { getSkillCategory } from '../config/skillCategories';
 
 const Skills = () => {
     const [skills, setSkills] = useState({});
     const [loading, setLoading] = useState(true);
-    const [categoryLabels, setCategoryLabels] = useState({
-        frontend: 'Frontend',
-        backend: 'Backend',
-        database: 'Database',
-        devops: 'DevOps',
-        tools: 'Tools',
-        languages: 'Languages',
-        frameworks: 'Frameworks',
-        'ai-ml': 'AI / ML',
-        other: 'Other'
-    });
+    const [categoryLabels, setCategoryLabels] = useState({});
 
     useEffect(() => {
         fetchCategories();
@@ -82,18 +46,19 @@ const Skills = () => {
     const categoryEntries = Object.entries(skills).filter(([, list]) => list.length > 0);
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-10">
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        Skills & Technologies
+                    <div className="section-ornament" />
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                        Skills &amp; Technologies
                     </h1>
                     <p className="text-gray-400 text-base">
                         A comprehensive overview of my technical skills and expertise.
                     </p>
                     {!loading && totalSkills > 0 && (
-                        <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
+                        <div className="mt-4 flex items-center gap-3 text-sm text-gray-500">
                             <span>{totalSkills} skills</span>
                             <span>·</span>
                             <span>{categoryEntries.length} categories</span>
@@ -105,21 +70,23 @@ const Skills = () => {
                 {loading ? (
                     <Loading text="Loading skills..." />
                 ) : categoryEntries.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
                         {categoryEntries.map(([category, categorySkills]) => {
-                            const Icon = categoryIconMap[category] || FiCode;
-                            const colorClasses = categoryColorMap[category] || 'text-gray-400 bg-gray-500/10';
-                            const label = categoryLabels[category] || category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            const cfg = getSkillCategory(category);
+                            const Icon = cfg.Icon;
+                            const label = categoryLabels[category] || cfg.label;
 
                             return (
                                 <div key={category} className="bg-dark-100 border border-gray-800/60 rounded-2xl p-5 hover:border-gray-700 transition-colors">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${colorClasses}`}>
+                                    <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-800/40">
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${cfg.text} ${cfg.bg}`}>
                                             <Icon size={16} />
                                         </div>
                                         <div>
                                             <h3 className="text-white font-semibold text-sm">{label}</h3>
-                                            <span className="text-gray-500 text-xs">{categorySkills.length} skills</span>
+                                            <span className="text-gray-500 text-xs">
+                                                {categorySkills.length} {categorySkills.length === 1 ? 'skill' : 'skills'}
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="divide-y divide-gray-800/40">

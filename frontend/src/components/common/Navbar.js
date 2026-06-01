@@ -43,22 +43,29 @@ const Navbar = () => {
             <div className="max-w-6xl mx-auto px-4 sm:px-6">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
-                    <Link to="/" className="text-white font-semibold text-lg tracking-tight hover:text-primary-400 transition-colors">
-                        {settings?.name?.split(' ')[0] || 'Portfolio'}
+                    <Link to="/" className="flex items-center gap-2 group">
+                        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-blue-500/20">
+                            {(settings?.name?.charAt(0) || 'P').toUpperCase()}
+                        </span>
+                        <span className="text-white font-semibold text-lg tracking-tight group-hover:text-primary-400 transition-colors">
+                            {settings?.name?.split(' ')[0] || 'Portfolio'}
+                        </span>
                     </Link>
 
                     {/* Desktop Nav */}
-                    <div className="hidden md:flex items-center gap-1">
+                    <div className="hidden md:flex items-center gap-0.5">
                         {navItems.map(({ path, label }) => (
                             <Link
                                 key={path}
                                 to={path}
-                                className={`px-3 py-1.5 rounded-lg text-base font-medium transition-all duration-200 ${isActive(path)
-                                    ? 'text-white bg-gray-800/60'
-                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                                className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${isActive(path)
+                                    ? 'text-white'
+                                    : 'text-gray-400 hover:text-white'
                                     }`}
                             >
                                 {label}
+                                <span className={`absolute left-3 right-3 bottom-1 h-0.5 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-200 origin-center ${isActive(path) ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0'
+                                    }`} />
                             </Link>
                         ))}
                     </div>

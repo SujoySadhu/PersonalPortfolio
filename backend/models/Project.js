@@ -17,6 +17,14 @@ const ProjectSchema = new mongoose.Schema({
     },
     images: [{ type: String }],
     thumbnail: { type: String },
+    // Downloadable resources: reports, slide decks, documents, etc.
+    attachments: [{
+        name: { type: String, trim: true },          // user-facing label e.g. "Project Report"
+        url: { type: String },                         // Cloudinary raw URL
+        format: { type: String },                      // file extension e.g. "pdf", "pptx"
+        bytes: { type: Number, default: 0 },           // file size in bytes
+        uploadedAt: { type: Date, default: Date.now }
+    }],
     youtubeLink: { type: String, default: '' },
     liveDemoLink: { type: String, default: '' },
     githubLink: { type: String, default: '' },

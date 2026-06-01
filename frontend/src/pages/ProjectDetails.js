@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
-import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
-import { projectsAPI, getImageUrl as getImg } from '../services/api';
+import { useParams, Link } from 'react-router-dom';
+import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiDownload, FiPaperclip } from 'react-icons/fi';
+import { projectsAPI } from '../services/api';
 import { processContentImages } from '../config/processContentImages';
+import { getFileMeta, formatBytes, FileTypeIcon } from '../config/fileHelpers';
 
 // Skeleton shown when loading from direct URL (not from project list)
 const ProjectSkeleton = () => (
@@ -11,7 +12,6 @@ const ProjectSkeleton = () => (
             <div className="h-4 w-28 bg-gray-800 rounded mb-8" />
             <div className="h-2 w-12 bg-primary-500/40 rounded mb-4" />
             <div className="h-9 w-2/3 bg-gray-700 rounded mb-6" />
-            <div className="aspect-video w-full bg-gray-800 rounded-2xl mb-8" />
             <div className="flex gap-3 mb-8">
                 <div className="h-9 w-24 bg-gray-800 rounded-lg" />
                 <div className="h-9 w-24 bg-gray-800 rounded-lg" />
@@ -26,17 +26,26 @@ const ProjectSkeleton = () => (
     </div>
 );
 
+// Section heading with the left-border accent used throughout the details page
+const SectionHeading = ({ icon: Icon, children }) => (
+    <div className="border-l-[3px] border-primary-500 pl-4 mb-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            {Icon && <Icon size={16} />} {children}
+        </h3>
+    </div>
+);
+
+// Cloudinary: force a download (Content-Disposition: attachment) via the fl_attachment flag
+const toDownloadUrl = (url) => {
+    if (!url || !url.includes('/upload/')) return url;
+    return url.replace('/upload/', '/upload/fl_attachment/');
+};
+
 const ProjectDetails = () => {
     const { id } = useParams();
-    const location = useLocation();
 
-    // Use project passed via router state for instant render (from project list)
-    // but ALWAYS fetch full data because the list API excludes 'description'
-    const [project, setProject] = useState(location.state?.project || null);
-    const [loading, setLoading] = useState(!location.state?.project);
-
-    const [selectedImage, setSelectedImage] = useState(0);
-    const [showLightbox, setShowLightbox] = useState(false);
+    const [project, setProject] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const fetchProject = React.useCallback(async () => {
         try {
@@ -50,21 +59,14 @@ const ProjectDetails = () => {
     }, [id]);
 
     useEffect(() => {
-        // Always fetch from API to get the full project (list API excludes description)
         fetchProject();
     }, [fetchProject]);
-
-    const getImageUrl = (image) => {
-        return getImg(image) || 'https://via.placeholder.com/800x500?text=No+Image';
-    };
 
     const extractYouTubeId = (url) => {
         if (!url) return null;
         const match = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/);
         return match ? match[1] : null;
     };
-
-
 
     if (loading) {
         return <ProjectSkeleton />;
@@ -80,6 +82,20 @@ const ProjectDetails = () => {
     }
 
     const youtubeId = extractYouTubeId(project.youtubeLink);
+    const attachments = Array.isArray(project.attachments) ? project.attachments : [];
+    // Show the overview if the description has text OR embedded media (images/video).
+    // Quill stores images as <img> tags with no surrounding text, so a text-only
+    // check would wrongly hide image-only descriptions.
+    const hasOverview = !!project.description && (
+        project.description.replace(/<[^>]+>/g, '').trim().length > 0 ||
+        /<(img|iframe|video)\b/i.test(project.description)
+    );
+
+    const statusStyle = project.status === 'completed'
+        ? 'bg-emerald-500/15 text-emerald-400'
+        : project.status === 'in-progress'
+            ? 'bg-amber-500/15 text-amber-400'
+            : 'bg-gray-500/15 text-gray-400';
 
     return (
         <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
@@ -92,16 +108,30 @@ const ProjectDetails = () => {
                     <FiArrowLeft size={14} /> Back to Projects
                 </Link>
 
-                {/* Project Title */}
-                <div className="section-ornament" />
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                {/* Eyebrow */}
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="section-ornament !mb-0" />
+                    {project.category && (
+                        <span className="text-xs font-semibold uppercase tracking-wider text-primary-400/80 capitalize">
+                            {project.category.replace('-', ' / ')}
+                        </span>
+                    )}
+                </div>
+
+                {/* Title */}
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
                     {project.title}
                 </h1>
 
-                {/* Image Gallery removed as per request */}
+                {/* Lead / short description */}
+                {project.shortDescription && (
+                    <p className="text-lg text-gray-400 leading-relaxed mb-7 max-w-3xl">
+                        {project.shortDescription}
+                    </p>
+                )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 mb-8">
+                <div className="flex flex-wrap gap-3 mb-10">
                     {project.githubLink && (
                         <a
                             href={project.githubLink}
@@ -134,25 +164,83 @@ const ProjectDetails = () => {
                             <FiPlay size={15} /> Demo Video
                         </a>
                     )}
+                    {attachments.length > 0 && (
+                        <a
+                            href="#resources"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 rounded-lg text-sm font-medium transition-colors"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                document.getElementById('resources')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                        >
+                            <FiPaperclip size={15} /> {attachments.length} Resource{attachments.length > 1 ? 's' : ''}
+                        </a>
+                    )}
                     {project.status && (
-                        <span className={`inline-flex items-center px-3 py-2 rounded-lg text-xs font-medium ${project.status === 'completed'
-                            ? 'bg-emerald-500/15 text-emerald-400'
-                            : project.status === 'in-progress'
-                                ? 'bg-amber-500/15 text-amber-400'
-                                : 'bg-gray-500/15 text-gray-400'
-                            }`}>
-                            {project.status?.replace('-', ' ').toUpperCase()}
+                        <span className={`inline-flex items-center px-3 py-2 rounded-lg text-xs font-medium ${statusStyle}`}>
+                            {project.status.replace('-', ' ').toUpperCase()}
                         </span>
                     )}
                 </div>
 
-                {/* Description - Markdown style with left border accents */}
-                <div className="space-y-6 mb-8">
-                    <div
-                        className="prose-details text-gray-300 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: processContentImages(project.description) }}
-                    />
-                </div>
+                {/* Overview */}
+                {hasOverview && (
+                    <div className="mb-12">
+                        <div
+                            className="prose-details text-gray-300 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: processContentImages(project.description) }}
+                        />
+                    </div>
+                )}
+
+                {/* Resources & Documents */}
+                {attachments.length > 0 && (
+                    <div className="mb-12 scroll-mt-24" id="resources">
+                        <SectionHeading icon={FiPaperclip}>Resources &amp; Documents</SectionHeading>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                            {attachments.map((att, idx) => {
+                                const meta = getFileMeta(att.format);
+                                return (
+                                    <div
+                                        key={idx}
+                                        className="group flex items-center gap-3.5 p-4 rounded-xl bg-dark-100 border border-gray-800/60 hover:border-gray-700 hover:-translate-y-0.5 transition-all duration-200"
+                                    >
+                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border ${meta.badge}`}>
+                                            <FileTypeIcon format={att.format} size={22} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-white truncate" title={att.name}>
+                                                {att.name}
+                                            </p>
+                                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                                <span className={`uppercase font-medium ${meta.tint}`}>{meta.label}</span>
+                                                {att.bytes > 0 && (<><span>·</span><span>{formatBytes(att.bytes)}</span></>)}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <a
+                                                href={att.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                                                title="View"
+                                            >
+                                                <FiExternalLink size={16} />
+                                            </a>
+                                            <a
+                                                href={toDownloadUrl(att.url)}
+                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                                                title="Download"
+                                            >
+                                                <FiDownload size={16} />
+                                            </a>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Tech Stack */}
                 {project.techStack && project.techStack.length > 0 && (() => {
@@ -170,13 +258,15 @@ const ProjectDetails = () => {
                         DevOps: 'text-amber-400/70',
                         Tools: 'text-gray-500',
                     };
-                    // Group tech by category
                     const groups = {};
                     project.techStack.forEach(tech => {
-                        const name = typeof tech === 'string' ? tech : tech.name;
+                        const rawName = typeof tech === 'string' ? tech : tech.name;
                         const cat = (typeof tech === 'object' && tech.category) ? tech.category : 'Tools';
-                        if (!name) return;
-                        (groups[cat] = groups[cat] || []).push(name);
+                        if (!rawName) return;
+                        // Split comma-joined names (e.g. "OpenGL,GLFW,GLAD") into separate chips
+                        String(rawName).split(',').map(s => s.trim()).filter(Boolean).forEach(name => {
+                            (groups[cat] = groups[cat] || []).push(name);
+                        });
                     });
                     const categoryOrder = ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'];
                     const entries = categoryOrder
@@ -184,10 +274,8 @@ const ProjectDetails = () => {
                         .map(cat => [cat, groups[cat]]);
 
                     return (
-                        <div className="mb-8">
-                            <div className="border-l-[3px] border-primary-500 pl-4 mb-4">
-                                <h3 className="text-lg font-bold text-white">Technologies Used</h3>
-                            </div>
+                        <div className="mb-12">
+                            <SectionHeading>Technologies Used</SectionHeading>
                             <div className="space-y-3">
                                 {entries.map(([group, techs]) => (
                                     <div key={group} className="flex items-start gap-3">
@@ -216,12 +304,8 @@ const ProjectDetails = () => {
 
                 {/* YouTube Video */}
                 {youtubeId && (
-                    <div className="mb-8" id="demo-video">
-                        <div className="border-l-[3px] border-primary-500 pl-4 mb-4">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <FiPlay size={16} /> Demo Video
-                            </h3>
-                        </div>
+                    <div className="mb-8 scroll-mt-24" id="demo-video">
+                        <SectionHeading icon={FiPlay}>Demo Video</SectionHeading>
                         <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden bg-dark-100 border border-gray-800/60">
                             <iframe
                                 className="absolute top-0 left-0 w-full h-full"

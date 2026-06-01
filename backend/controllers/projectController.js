@@ -29,6 +29,32 @@ const parseTechStack = (raw) => {
     return [];
 };
 
+// Helper: sanitize an attachments array coming from the JSON payload
+const parseAttachments = (raw) => {
+    if (!raw) return [];
+    let arr = raw;
+    if (typeof raw === 'string') {
+        try { arr = JSON.parse(raw); } catch (e) { return []; }
+    }
+    if (!Array.isArray(arr)) return [];
+    return arr
+        .map(a => ({
+            name: (a.name || '').toString().trim() || 'Document',
+            url: (a.url || '').toString().trim(),
+            format: (a.format || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8),
+            bytes: Number(a.bytes) || 0,
+            uploadedAt: a.uploadedAt ? new Date(a.uploadedAt) : new Date()
+        }))
+        .filter(a => a.url); // a valid attachment must have a URL
+};
+
+// Helper: extract the Cloudinary "raw" public_id (incl. extension) from a delivery URL
+const rawPublicIdFromUrl = (url) => {
+    if (!url) return null;
+    const match = url.split('?')[0].match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
+    return match ? match[1] : null;
+};
+
 // @desc    Get all projects
 // @route   GET /api/projects
 // @access  Public
@@ -91,22 +117,18 @@ exports.getProject = async (req, res) => {
 // @access  Private (Admin)
 exports.createProject = async (req, res) => {
     try {
-        console.log("CREATE PROJECT REQUEST BODY:", JSON.stringify(req.body));
-        
         // Handle pre-uploaded Cloudinary URLs sent as JSON array OR stringified JSON
         let cloudinaryUrls = req.body.cloudinaryUrls;
-        
+
         // If the frontend sent FormData, it might arrive as a stringified JSON array
         if (typeof cloudinaryUrls === 'string') {
             try {
                 cloudinaryUrls = JSON.parse(cloudinaryUrls);
             } catch (err) {
-                console.error("Failed to parse cloudinaryUrls string:", err);
+                cloudinaryUrls = undefined;
             }
         }
-        
-        console.log("Extracted cloudinaryUrls:", cloudinaryUrls);
-        
+
         if (Array.isArray(cloudinaryUrls) && cloudinaryUrls.length > 0) {
             req.body.images = cloudinaryUrls;
             req.body.thumbnail = cloudinaryUrls[0];
@@ -114,6 +136,9 @@ exports.createProject = async (req, res) => {
 
         // Parse techStack (already an array from JSON payload)
         req.body.techStack = parseTechStack(req.body.techStack);
+
+        // Parse downloadable resources (reports, slide decks, etc.)
+        req.body.attachments = parseAttachments(req.body.attachments);
 
         // Remove cloudinaryUrls from what gets saved to DB
         delete req.body.cloudinaryUrls;
@@ -195,6 +220,11 @@ exports.updateProject = async (req, res) => {
             project.techStack = parseTechStack(req.body.techStack);
         }
 
+        // Update downloadable resources (full replace — frontend sends the desired final list)
+        if (req.body.attachments !== undefined) {
+            project.attachments = parseAttachments(req.body.attachments);
+        }
+
         // Set images and thumbnail
         project.images = updatedImages;
         project.thumbnail = updatedImages.length > 0 ? updatedImages[0] : '';
@@ -263,6 +293,23 @@ exports.deleteProject = async (req, res) => {
                 }
             } catch (e) {
                 console.error('[Cloudinary] Batch delete error:', e.message);
+            }
+        }
+
+        // Delete attachment (raw) files — these need an explicit resource_type
+        if (Array.isArray(project.attachments) && project.attachments.length > 0) {
+            const rawIds = project.attachments
+                .filter(att => att?.url && att.url.includes('cloudinary'))
+                .map(att => rawPublicIdFromUrl(att.url))
+                .filter(Boolean);
+
+            if (rawIds.length > 0) {
+                try {
+                    await cloudinary.api.delete_resources(rawIds, { resource_type: 'raw' });
+                    console.log(`[Cloudinary] Deleted ${rawIds.length} attachment file(s).`);
+                } catch (e) {
+                    console.error('[Cloudinary] Attachment delete error:', e.message);
+                }
             }
         }
 

@@ -6,7 +6,8 @@ require('dotenv').config();
 const connectDB = require('../config/db');
 const errorHandler = require('../middleware/error');
 const { invalidateCache } = require('../middleware/cache');
-const { upload } = require('../config/cloudinary');
+const { upload, documentUpload } = require('../config/cloudinary');
+const { protect } = require('../middleware/auth');
 
 const authRoutes = require('../routes/auth');
 const projectRoutes = require('../routes/projects');
@@ -51,7 +52,7 @@ app.use(cors({
 // General-purpose single image upload to Cloudinary
 // Used by forms (projects, achievements, etc.) to upload images one-at-a-time
 // This avoids Vercel's 4.5MB body size limit by uploading each image separately
-app.post('/api/upload/image', require('../middleware/auth').protect, upload.single('image'), (req, res) => {
+app.post('/api/upload/image', protect, upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image file provided' });
     }
@@ -63,13 +64,33 @@ app.post('/api/upload/image', require('../middleware/auth').protect, upload.sing
 
 // Editor image upload endpoint (for Quill rich-text editor)
 // Saves to Cloudinary and returns the URL
-app.post('/api/upload/editor-image', upload.single('image'), (req, res) => {
+app.post('/api/upload/editor-image', protect, upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image file provided' });
     }
     res.status(200).json({
         success: true,
         url: req.file.path // Cloudinary URL
+    });
+});
+
+// Document upload endpoint (reports, slide decks, etc.) — stored as Cloudinary raw files
+app.post('/api/upload/document', protect, (req, res) => {
+    documentUpload.single('file')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ success: false, message: err.message || 'File upload failed' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file provided' });
+        }
+        const originalName = req.file.originalname || 'document';
+        res.status(200).json({
+            success: true,
+            url: req.file.path,
+            originalName,
+            format: (originalName.split('.').pop() || '').toLowerCase(),
+            bytes: req.file.size || req.file.bytes || 0
+        });
     });
 });
 
@@ -89,13 +110,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/auth', authRoutes);
-
-app.use('/api/projects', (req, res, next) => {
-    console.log(`[VERCEL DEBUG] ${req.method} /api/projects`);
-    console.log(`[VERCEL DEBUG] req.body:`, JSON.stringify(req.body));
-    next();
-}, projectRoutes);
-
+app.use('/api/projects', projectRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/settings', settingsRoutes);

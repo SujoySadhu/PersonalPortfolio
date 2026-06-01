@@ -52,20 +52,33 @@ export const HeroSkeleton = () => (
     </section>
 );
 
-// Project card skeleton
+// Project card skeleton — mirrors the ProjectCard layout
 export const ProjectCardSkeleton = () => (
-    <div className="bg-dark-200/50 rounded-xl border border-gray-800/50 p-5">
-        <SkeletonBox className="h-6 w-3/4 mb-3" />
-        <SkeletonText lines={2} className="mb-4" />
-        <div className="flex gap-2 mb-4">
-            <SkeletonBox className="h-7 w-24 rounded-full" />
-            <SkeletonBox className="h-7 w-16 rounded-full" />
-            <SkeletonBox className="h-7 w-16 rounded-full" />
+    <div className="bg-dark-100 rounded-2xl border border-gray-800/60 p-6 h-full flex flex-col">
+        {/* Eyebrow row */}
+        <div className="flex items-center justify-between mb-3">
+            <SkeletonBox className="h-3.5 w-20 rounded" />
+            <SkeletonBox className="h-5 w-20 rounded-full" />
         </div>
-        <div className="flex gap-1.5">
-            <SkeletonBox className="h-5 w-14 rounded" />
-            <SkeletonBox className="h-5 w-14 rounded" />
-            <SkeletonBox className="h-5 w-14 rounded" />
+        {/* Title */}
+        <SkeletonBox className="h-5 w-4/5 mb-2" />
+        <SkeletonBox className="h-5 w-1/2 mb-4" />
+        {/* Description */}
+        <SkeletonText lines={3} className="mb-5" />
+        {/* Tech rows */}
+        <div className="space-y-2.5 mb-5">
+            {[1, 2].map(i => (
+                <div key={i} className="flex items-center gap-2">
+                    <SkeletonBox className="h-3 w-14 rounded" />
+                    <SkeletonBox className="h-5 w-16 rounded" />
+                    <SkeletonBox className="h-5 w-14 rounded" />
+                </div>
+            ))}
+        </div>
+        {/* Footer */}
+        <div className="flex gap-2.5 mt-auto pt-4 border-t border-gray-800/40">
+            <SkeletonBox className="h-9 w-28 rounded-full" />
+            <SkeletonBox className="h-9 w-20 rounded-full" />
         </div>
     </div>
 );

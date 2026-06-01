@@ -59,13 +59,36 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 
 // Editor image upload endpoint (for Quill rich-text editor)
 const upload = require('./middleware/upload');
-app.post('/api/upload/editor-image', require('./middleware/auth').protect, upload.single('image'), (req, res) => {
+const { protect } = require('./middleware/auth');
+const { documentUpload } = require('./config/cloudinary');
+
+app.post('/api/upload/editor-image', protect, upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image file provided' });
     }
     res.status(200).json({
         success: true,
         url: req.file.path // Full Cloudinary URL provided by multer-storage-cloudinary
+    });
+});
+
+// Document upload endpoint (reports, slide decks, etc.) — stored as Cloudinary raw files
+app.post('/api/upload/document', protect, (req, res) => {
+    documentUpload.single('file')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ success: false, message: err.message || 'File upload failed' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file provided' });
+        }
+        const originalName = req.file.originalname || 'document';
+        res.status(200).json({
+            success: true,
+            url: req.file.path,
+            originalName,
+            format: (originalName.split('.').pop() || '').toLowerCase(),
+            bytes: req.file.size || req.file.bytes || 0
+        });
     });
 });
 

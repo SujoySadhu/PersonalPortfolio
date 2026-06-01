@@ -7,7 +7,9 @@ import { useSettings } from '../context/SettingsContext';
 import { ScrollAnimation } from '../hooks/useScrollAnimation';
 import ProjectCard from '../components/projects/ProjectCard';
 import SkillCard from '../components/skills/SkillCard';
+import AchievementCard from '../components/achievements/AchievementCard';
 import { ProjectCardSkeleton, SkillCardSkeleton } from '../components/common/Skeleton';
+import { getSkillCategory } from '../config/skillCategories';
 
 const Home = () => {
     const { settings } = useSettings();
@@ -77,6 +79,8 @@ const Home = () => {
             {/* HERO SECTION — RENDERS INSTANTLY */}
             {/* ============================================ */}
             <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 sm:py-20 pt-24 overflow-hidden">
+                {/* Subtle grid backdrop */}
+                <div className="absolute inset-0 bg-grid-faint pointer-events-none" />
                 {/* Animated gradient mesh orbs */}
                 <div className="hero-orb hero-orb-1 animate-float" />
                 <div className="hero-orb hero-orb-2 animate-float-delay" />
@@ -108,7 +112,26 @@ const Home = () => {
 
                         {/* Content — uses settings which always has defaults */}
                         <div className="text-center lg:text-left flex-1 animate-fade-in">
-                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 tracking-tight">
+                            {/* Status eyebrow */}
+                            <div className="inline-flex items-center gap-2 px-3 py-1 mb-5 rounded-full border border-gray-800 bg-dark-100/60 text-xs font-medium text-gray-400">
+                                {settings?.isAvailableForHire ? (
+                                    <>
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                                        </span>
+                                        Available for opportunities
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                                        Welcome to my portfolio
+                                    </>
+                                )}
+                            </div>
+
+                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 tracking-tight leading-[1.05]">
+                                <span className="text-gray-500 text-2xl sm:text-3xl lg:text-4xl font-semibold block mb-1">Hi, I'm</span>
                                 <span className="text-gradient">{settings?.name || 'Your Name'}</span>
                             </h1>
 
@@ -134,15 +157,6 @@ const Home = () => {
                                         <FiMail size={13} />
                                         {settings.email}
                                     </a>
-                                )}
-                                {settings?.isAvailableForHire && (
-                                    <>
-                                        <span className="text-gray-600">·</span>
-                                        <span className="flex items-center gap-1.5 text-emerald-500">
-                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                                            Available
-                                        </span>
-                                    </>
                                 )}
                             </div>
 
@@ -211,10 +225,11 @@ const Home = () => {
                             {[1, 2, 3, 4, 5, 6].map(i => <ProjectCardSkeleton key={i} />)}
                         </div>
                     ) : featuredProjects.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                             {featuredProjects.map((project, index) => (
                                 <ScrollAnimation
                                     key={project._id}
+                                    className="h-full"
                                     animation="fade-up"
                                     delay={index * 80}
                                     duration={500}
@@ -252,17 +267,33 @@ const Home = () => {
                             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkillCardSkeleton key={i} />)}
                         </div>
                     ) : skills.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
                             {Object.entries(
                                 skills.reduce((acc, s) => { (acc[s.category] = acc[s.category] || []).push(s); return acc; }, {})
-                            ).map(([cat, catSkills]) => (
-                                <ScrollAnimation key={cat} animation="fade-up" duration={400}>
-                                    <div className="bg-dark-100 border border-gray-800/60 rounded-2xl p-5 hover:border-gray-700 transition-colors">
-                                        <h4 className="text-white font-semibold text-sm capitalize mb-3">{cat}</h4>
-                                        {catSkills.map(skill => <SkillCard key={skill._id} skill={skill} />)}
-                                    </div>
-                                </ScrollAnimation>
-                            ))}
+                            ).map(([cat, catSkills]) => {
+                                const cfg = getSkillCategory(cat);
+                                const Icon = cfg.Icon;
+                                return (
+                                    <ScrollAnimation key={cat} animation="fade-up" duration={400}>
+                                        <div className="bg-dark-100 border border-gray-800/60 rounded-2xl p-5 hover:border-gray-700 transition-colors">
+                                            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-800/40">
+                                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${cfg.text} ${cfg.bg}`}>
+                                                    <Icon size={16} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-white font-semibold text-sm">{cfg.label}</h4>
+                                                    <span className="text-gray-500 text-xs">
+                                                        {catSkills.length} {catSkills.length === 1 ? 'skill' : 'skills'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="divide-y divide-gray-800/40">
+                                                {catSkills.map(skill => <SkillCard key={skill._id} skill={skill} />)}
+                                            </div>
+                                        </div>
+                                    </ScrollAnimation>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-16">
@@ -318,25 +349,11 @@ const Home = () => {
                             <h2 className="text-3xl font-bold text-white mb-2">Achievements</h2>
                             <p className="text-gray-400 text-base">Awards, certifications, and milestones</p>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                             {achievements.map((item) => (
-                                <div key={item._id} className="group cursor-pointer" onClick={() => setSelectedAchievement(item)}>
-                                    <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-pink-500/40 via-purple-500/30 to-emerald-500/40 hover:from-pink-500/60 hover:via-purple-500/50 hover:to-emerald-500/60 transition-all duration-500">
-                                        <div className="bg-dark-100 rounded-2xl overflow-hidden">
-                                            {item.image && (
-                                                <div className="aspect-[4/3] overflow-hidden">
-                                                    <img src={getImageUrl(item.image)} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                                                </div>
-                                            )}
-                                            <div className="p-5">
-                                                <h3 className="text-lg font-bold text-white mb-2 leading-snug group-hover:text-primary-400 transition-colors">{item.title}</h3>
-                                                {item.description && (
-                                                    <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">{item.description}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <ScrollAnimation key={item._id} className="h-full" animation="fade-up" duration={400}>
+                                    <AchievementCard achievement={item} onClick={() => setSelectedAchievement(item)} />
+                                </ScrollAnimation>
                             ))}
                         </div>
                         <div className="mt-10">
