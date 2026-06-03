@@ -55,6 +55,60 @@ const rawPublicIdFromUrl = (url) => {
     return match ? match[1] : null;
 };
 
+// Helper: collect Cloudinary URLs from any mix of HTML strings and arrays
+const collectCloudinaryUrls = (...sources) => {
+    const urls = [];
+    for (const src of sources) {
+        if (!src) continue;
+        if (Array.isArray(src)) {
+            for (const u of src) if (typeof u === 'string' && u.includes('res.cloudinary.com')) urls.push(u);
+        } else if (typeof src === 'string') {
+            const m = src.match(/https?:\/\/res\.cloudinary\.com\/[^\s'"<>()\\]+/g);
+            if (m) urls.push(...m);
+        }
+    }
+    return urls;
+};
+
+// Helper: Cloudinary IMAGE public_id from a delivery URL (folder/name, no extension)
+const imagePublicIdFromUrl = (url) => {
+    if (!url) return null;
+    const m = url.split('?')[0].match(/\/upload\/(?:v\d+\/)?(.+)$/);
+    if (!m) return null;
+    return m[1].replace(/\.[a-zA-Z0-9]+$/, '');
+};
+
+// Helper: normalize a canvas object coming from the JSON payload (or string)
+const parseCanvas = (raw) => {
+    if (raw === undefined || raw === null) return undefined;
+    let c = raw;
+    if (typeof c === 'string') {
+        try { c = JSON.parse(c); } catch (e) { return undefined; }
+    }
+    if (!c || typeof c !== 'object') return undefined;
+    return c;
+};
+
+// Helper: all image src URLs used inside a canvas
+const canvasImageUrls = (canvas) => {
+    if (!canvas || !Array.isArray(canvas.elements)) return [];
+    return canvas.elements
+        .filter(el => el && el.type === 'image' && typeof el.src === 'string')
+        .map(el => el.src);
+};
+
+// Helper: best-effort batch delete of Cloudinary assets (never throws)
+const deleteCloudinaryAssets = async (publicIds, resourceType) => {
+    const ids = [...new Set((publicIds || []).filter(Boolean))];
+    if (!ids.length) return;
+    try {
+        await cloudinary.api.delete_resources(ids, resourceType ? { resource_type: resourceType } : {});
+        console.log(`[Cloudinary] Deleted ${ids.length} ${resourceType || 'image'} asset(s).`);
+    } catch (e) {
+        console.error('[Cloudinary] Delete error:', e.message);
+    }
+};
+
 // @desc    Get all projects
 // @route   GET /api/projects
 // @access  Public
@@ -140,6 +194,10 @@ exports.createProject = async (req, res) => {
         // Parse downloadable resources (reports, slide decks, etc.)
         req.body.attachments = parseAttachments(req.body.attachments);
 
+        // Parse the visual canvas (slide of images + text boxes)
+        const parsedCanvas = parseCanvas(req.body.canvas);
+        if (parsedCanvas) req.body.canvas = parsedCanvas; else delete req.body.canvas;
+
         // Remove cloudinaryUrls from what gets saved to DB
         delete req.body.cloudinaryUrls;
 
@@ -170,6 +228,14 @@ exports.updateProject = async (req, res) => {
                 message: 'Project not found'
             });
         }
+
+        // Snapshot the OLD media so we can delete anything removed during this edit
+        const oldDescription = project.description || '';
+        const oldImages = Array.isArray(project.images) ? project.images.slice() : [];
+        const oldAttachmentUrls = Array.isArray(project.attachments)
+            ? project.attachments.map(a => a && a.url).filter(Boolean)
+            : [];
+        const oldCanvasImageUrls = canvasImageUrls(project.canvas);
 
         // Start with existing images from DB
         let updatedImages = project.images || [];
@@ -225,11 +291,38 @@ exports.updateProject = async (req, res) => {
             project.attachments = parseAttachments(req.body.attachments);
         }
 
+        // Update the visual canvas
+        if (req.body.canvas !== undefined) {
+            const parsedCanvas = parseCanvas(req.body.canvas);
+            project.canvas = parsedCanvas; // undefined clears it
+            project.markModified('canvas');
+        }
+
         // Set images and thumbnail
         project.images = updatedImages;
         project.thumbnail = updatedImages.length > 0 ? updatedImages[0] : '';
 
         await project.save();
+
+        // --- Clean up Cloudinary assets removed during this edit (best-effort) ---
+        try {
+            // Images: anything in the old description/images/canvas that's no longer present
+            const oldImageUrls = new Set(collectCloudinaryUrls(oldDescription, oldImages, oldCanvasImageUrls));
+            const newImageUrls = new Set(collectCloudinaryUrls(project.description, project.images, canvasImageUrls(project.canvas)));
+            const removedImageIds = [...oldImageUrls]
+                .filter(u => !newImageUrls.has(u))
+                .map(imagePublicIdFromUrl);
+            await deleteCloudinaryAssets(removedImageIds); // image resource type
+
+            // Attachments (raw): anything in the old list that's no longer present
+            const newAttachmentUrls = new Set((project.attachments || []).map(a => a && a.url).filter(Boolean));
+            const removedAttachmentIds = oldAttachmentUrls
+                .filter(u => !newAttachmentUrls.has(u))
+                .map(rawPublicIdFromUrl);
+            await deleteCloudinaryAssets(removedAttachmentIds, 'raw');
+        } catch (e) {
+            console.error('[Cloudinary] Orphan cleanup on update failed:', e.message);
+        }
 
         res.status(200).json({
             success: true,
@@ -257,61 +350,17 @@ exports.deleteProject = async (req, res) => {
             });
         }
 
-        // Collect all Cloudinary URLs associated with this project to delete
-        const urlsToDelete = [];
+        // Remove all Cloudinary assets owned by this project (best-effort).
+        // Images: embedded in the description + the legacy images array + the canvas.
+        const imageIds = collectCloudinaryUrls(project.description, project.images, canvasImageUrls(project.canvas)).map(imagePublicIdFromUrl);
+        await deleteCloudinaryAssets(imageIds);
 
-        // 1. Legacy images array (if any remain)
-        if (project.images && Array.isArray(project.images)) {
-            urlsToDelete.push(...project.images);
-        }
-
-        // 2. Embedded images in rich-text description
-        if (project.description) {
-            // Match all Cloudinary URLs inside the HTML string
-            const regex = /https:\/\/res\.cloudinary\.com\/[^\s'"]+\/portfolio\/[^\s'"]+/g;
-            const matches = project.description.match(regex);
-            if (matches) {
-                urlsToDelete.push(...matches);
-            }
-        }
-
-        // Ensure array is unique to avoid triggering duplicate deletions if an image was copied twice
-        const uniqueUrls = [...new Set(urlsToDelete)];
-
-        if (uniqueUrls.length > 0) {
-            try {
-                const publicIds = uniqueUrls.filter(url => url && url.includes('cloudinary')).map(imageUrl => {
-                    const parts = imageUrl.split('/');
-                    const folder = parts[parts.length - 2];
-                    const filename = parts[parts.length - 1].split('.')[0];
-                    return `${folder}/${filename}`;
-                });
-                
-                if (publicIds.length > 0) {
-                    await cloudinary.api.delete_resources(publicIds);
-                    console.log(`[Cloudinary] Successfully batch deleted ${publicIds.length} orphan images.`);
-                }
-            } catch (e) {
-                console.error('[Cloudinary] Batch delete error:', e.message);
-            }
-        }
-
-        // Delete attachment (raw) files — these need an explicit resource_type
-        if (Array.isArray(project.attachments) && project.attachments.length > 0) {
-            const rawIds = project.attachments
-                .filter(att => att?.url && att.url.includes('cloudinary'))
-                .map(att => rawPublicIdFromUrl(att.url))
-                .filter(Boolean);
-
-            if (rawIds.length > 0) {
-                try {
-                    await cloudinary.api.delete_resources(rawIds, { resource_type: 'raw' });
-                    console.log(`[Cloudinary] Deleted ${rawIds.length} attachment file(s).`);
-                } catch (e) {
-                    console.error('[Cloudinary] Attachment delete error:', e.message);
-                }
-            }
-        }
+        // Attachments are raw resources — delete with the raw resource type.
+        const attachmentIds = (project.attachments || [])
+            .map(att => att && att.url)
+            .filter(Boolean)
+            .map(rawPublicIdFromUrl);
+        await deleteCloudinaryAssets(attachmentIds, 'raw');
 
         await Project.findByIdAndDelete(req.params.id);
 

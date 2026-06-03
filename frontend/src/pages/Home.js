@@ -94,16 +94,14 @@ const Home = () => {
                             <div className="profile-ring">
                                 <div className="relative w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden bg-dark-200">
                                     <img
-                                        src={LOCAL_PROFILE_IMAGE}
+                                        src={getImageUrl(settings?.profileImage) || LOCAL_PROFILE_IMAGE}
                                         alt="Profile"
                                         className="w-full h-full object-cover object-top"
                                         loading="eager"
                                         onError={(e) => {
-                                            const apiImage = getImageUrl(settings?.profileImage);
-                                            if (apiImage) {
-                                                e.target.onerror = null;
-                                                e.target.src = apiImage;
-                                            }
+                                            // If the admin-set image fails, fall back to the local file
+                                            e.target.onerror = null;
+                                            e.target.src = LOCAL_PROFILE_IMAGE;
                                         }}
                                     />
                                 </div>

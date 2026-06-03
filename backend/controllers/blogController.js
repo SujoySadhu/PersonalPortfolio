@@ -153,6 +153,9 @@ exports.updateBlog = async (req, res) => {
             });
         }
 
+        // Snapshot old content so we can remove images deleted during this edit
+        const oldContent = blog.content || '';
+
         const { title, excerpt, content, category, tags, author, published, featured, metaTitle, metaDescription } = req.body;
 
         const updateData = {
@@ -192,6 +195,27 @@ exports.updateBlog = async (req, res) => {
             new: true,
             runValidators: true
         });
+
+        // --- Clean up content images removed during this edit (best-effort) ---
+        try {
+            const re = /https?:\/\/res\.cloudinary\.com\/[^\s'"<>()\\]+/g;
+            const oldUrls = new Set(oldContent.match(re) || []);
+            const newUrls = new Set((blog.content || '').match(re) || []);
+            const removedIds = [...oldUrls]
+                .filter(u => !newUrls.has(u))
+                .map(u => {
+                    const m = u.split('?')[0].match(/\/upload\/(?:v\d+\/)?(.+)$/);
+                    return m ? m[1].replace(/\.[a-zA-Z0-9]+$/, '') : null;
+                })
+                .filter(Boolean);
+            const uniqueIds = [...new Set(removedIds)];
+            if (uniqueIds.length) {
+                await cloudinary.api.delete_resources(uniqueIds);
+                console.log(`[Cloudinary] Removed ${uniqueIds.length} orphaned blog image(s) on update.`);
+            }
+        } catch (e) {
+            console.error('[Cloudinary] Blog update cleanup error:', e.message);
+        }
 
         res.status(200).json({
             success: true,

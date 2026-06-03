@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiDownload, FiPaperclip } from 'react-icons/fi';
+import { FiArrowLeft, FiGithub, FiExternalLink, FiPlay, FiPaperclip } from 'react-icons/fi';
 import { projectsAPI } from '../services/api';
+import CanvasView from '../components/common/CanvasView';
 import { processContentImages } from '../config/processContentImages';
 import { getFileMeta, formatBytes, FileTypeIcon } from '../config/fileHelpers';
+import { groupTechStack, getTechCategory } from '../config/techCategories';
 
 // Skeleton shown when loading from direct URL (not from project list)
 const ProjectSkeleton = () => (
@@ -35,10 +37,10 @@ const SectionHeading = ({ icon: Icon, children }) => (
     </div>
 );
 
-// Cloudinary: force a download (Content-Disposition: attachment) via the fl_attachment flag
-const toDownloadUrl = (url) => {
-    if (!url || !url.includes('/upload/')) return url;
-    return url.replace('/upload/', '/upload/fl_attachment/');
+// Short, readable host label for a resource link (e.g. "drive.google.com")
+const hostOf = (url) => {
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch (e) { return ''; }
 };
 
 const ProjectDetails = () => {
@@ -83,9 +85,8 @@ const ProjectDetails = () => {
 
     const youtubeId = extractYouTubeId(project.youtubeLink);
     const attachments = Array.isArray(project.attachments) ? project.attachments : [];
+
     // Show the overview if the description has text OR embedded media (images/video).
-    // Quill stores images as <img> tags with no surrounding text, so a text-only
-    // check would wrongly hide image-only descriptions.
     const hasOverview = !!project.description && (
         project.description.replace(/<[^>]+>/g, '').trim().length > 0 ||
         /<(img|iframe|video)\b/i.test(project.description)
@@ -193,6 +194,13 @@ const ProjectDetails = () => {
                     </div>
                 )}
 
+                {/* Project description canvas (images + formatted text boxes) */}
+                {project.canvas && Array.isArray(project.canvas.elements) && project.canvas.elements.length > 0 && (
+                    <div className="mb-12">
+                        <CanvasView canvas={project.canvas} />
+                    </div>
+                )}
+
                 {/* Resources & Documents */}
                 {attachments.length > 0 && (
                     <div className="mb-12 scroll-mt-24" id="resources">
@@ -214,27 +222,20 @@ const ProjectDetails = () => {
                                             </p>
                                             <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                                 <span className={`uppercase font-medium ${meta.tint}`}>{meta.label}</span>
-                                                {att.bytes > 0 && (<><span>·</span><span>{formatBytes(att.bytes)}</span></>)}
+                                                {att.bytes > 0
+                                                    ? (<><span>·</span><span>{formatBytes(att.bytes)}</span></>)
+                                                    : (hostOf(att.url) && (<><span>·</span><span className="truncate">{hostOf(att.url)}</span></>))}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <a
-                                                href={att.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                                                title="View"
-                                            >
-                                                <FiExternalLink size={16} />
-                                            </a>
-                                            <a
-                                                href={toDownloadUrl(att.url)}
-                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                                                title="Download"
-                                            >
-                                                <FiDownload size={16} />
-                                            </a>
-                                        </div>
+                                        <a
+                                            href={att.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 shrink-0 px-3.5 h-9 rounded-lg text-sm font-medium text-gray-200 bg-gray-800/70 hover:bg-gray-700 hover:text-white border border-gray-700/60 transition-colors"
+                                            title={`Open ${att.name}`}
+                                        >
+                                            <FiExternalLink size={15} /> Open
+                                        </a>
                                     </div>
                                 );
                             })}
@@ -244,59 +245,36 @@ const ProjectDetails = () => {
 
                 {/* Tech Stack */}
                 {project.techStack && project.techStack.length > 0 && (() => {
-                    const groupDot = {
-                        Frontend: 'bg-blue-400',
-                        Backend: 'bg-emerald-400',
-                        Database: 'bg-violet-400',
-                        DevOps: 'bg-amber-400',
-                        Tools: 'bg-gray-400',
-                    };
-                    const groupLabel = {
-                        Frontend: 'text-blue-400/70',
-                        Backend: 'text-emerald-400/70',
-                        Database: 'text-violet-400/70',
-                        DevOps: 'text-amber-400/70',
-                        Tools: 'text-gray-500',
-                    };
-                    const groups = {};
-                    project.techStack.forEach(tech => {
-                        const rawName = typeof tech === 'string' ? tech : tech.name;
-                        const cat = (typeof tech === 'object' && tech.category) ? tech.category : 'Tools';
-                        if (!rawName) return;
-                        // Split comma-joined names (e.g. "OpenGL,GLFW,GLAD") into separate chips
-                        String(rawName).split(',').map(s => s.trim()).filter(Boolean).forEach(name => {
-                            (groups[cat] = groups[cat] || []).push(name);
-                        });
-                    });
-                    const categoryOrder = ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'];
-                    const entries = categoryOrder
-                        .filter(cat => groups[cat] && groups[cat].length > 0)
-                        .map(cat => [cat, groups[cat]]);
+                    const entries = groupTechStack(project.techStack);
+                    if (entries.length === 0) return null;
 
                     return (
                         <div className="mb-12">
                             <SectionHeading>Technologies Used</SectionHeading>
                             <div className="space-y-3">
-                                {entries.map(([group, techs]) => (
-                                    <div key={group} className="flex items-start gap-3">
-                                        <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
-                                            <span className={`w-2 h-2 rounded-full ${groupDot[group] || 'bg-gray-400'}`} />
-                                            <span className={`text-xs font-bold uppercase tracking-wider ${groupLabel[group] || 'text-gray-500'} w-20`}>
-                                                {group}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {techs.map((tech, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="px-3 py-1.5 bg-dark-100 border border-gray-800/60 text-gray-300 rounded-lg text-sm"
-                                                >
-                                                    {tech}
+                                {entries.map(([group, techs]) => {
+                                    const meta = getTechCategory(group);
+                                    return (
+                                        <div key={group} className="flex items-start gap-3">
+                                            <div className="flex items-center gap-1.5 flex-shrink-0 mt-1 w-28">
+                                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${meta.dot}`} />
+                                                <span className={`text-xs font-bold uppercase tracking-wider ${meta.text}`}>
+                                                    {meta.label}
                                                 </span>
-                                            ))}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 flex-1">
+                                                {techs.map((tech, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="px-3 py-1.5 bg-dark-100 border border-gray-800/60 text-gray-300 rounded-lg text-sm"
+                                                    >
+                                                        {tech}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     );

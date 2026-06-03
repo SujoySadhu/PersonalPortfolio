@@ -323,311 +323,6 @@
   box-shadow: 0 0 20px currentColor;
 }
 
-/* React Quill Editor */
-.ql-toolbar.ql-snow {
-  @apply bg-dark-100 border-gray-700 rounded-t-lg;
-}
-
-.ql-container.ql-snow {
-  @apply bg-dark-200 border-gray-700 rounded-b-lg text-gray-100;
-  min-height: 200px;
-  overflow: hidden;
-  position: relative;
-}
-
-.ql-editor {
-  @apply text-gray-100;
-  min-height: 300px;
-  max-height: 800px;
-  overflow-y: auto;
-}
-
-/* ---- Quill images inside editor ---- */
-.ql-editor img {
-  cursor: pointer;
-  width: 92%;
-  max-width: 720px;
-  height: auto;
-  object-fit: cover;
-  display: block;
-  margin: 1rem auto;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(107, 114, 128, 0.3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.ql-editor img:hover {
-  border-color: rgba(107, 114, 128, 0.6);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-}
-
-.ql-image-delete-btn {
-  position: absolute;
-  z-index: 50;
-  width: 28px;
-  height: 28px;
-  background: #ef4444;
-  color: white;
-  border: 2px solid white;
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  line-height: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  transition: background 0.15s;
-  padding: 0;
-}
-
-.ql-image-delete-btn:hover {
-  background: #dc2626;
-  transform: scale(1.1);
-}
-
-.ql-snow .ql-stroke {
-  stroke: #6b7280;
-}
-
-.ql-snow .ql-fill {
-  fill: #6b7280;
-}
-
-.ql-snow .ql-picker {
-  color: #6b7280;
-}
-
-.ql-snow .ql-picker-options {
-  @apply bg-dark-100 border-gray-700;
-}
-
-/* ---- Quill Editor: custom font labels in toolbar dropdown ---- */
-.ql-snow .ql-picker.ql-font .ql-picker-label::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item::before {
-  content: 'Sans Serif';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before {
-  content: 'Serif';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="monospace"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="monospace"]::before {
-  content: 'Monospace';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
-  content: 'Arial';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
-  content: 'Georgia';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before {
-  content: 'Impact';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="tahoma"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]::before {
-  content: 'Tahoma';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
-  content: 'Verdana';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="courier-new"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier-new"]::before {
-  content: 'Courier New';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
-  content: 'Times New Roman';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="trebuchet-ms"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet-ms"]::before {
-  content: 'Trebuchet MS';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="comic-sans"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="comic-sans"]::before {
-  content: 'Comic Sans';
-}
-
-.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="lucida-console"]::before,
-.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="lucida-console"]::before {
-  content: 'Lucida Console';
-}
-
-/* Render the custom font families in the editor */
-.ql-font-arial {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-.ql-font-georgia {
-  font-family: Georgia, 'Times New Roman', serif;
-}
-
-.ql-font-impact {
-  font-family: Impact, Charcoal, sans-serif;
-}
-
-.ql-font-tahoma {
-  font-family: Tahoma, Geneva, sans-serif;
-}
-
-.ql-font-verdana {
-  font-family: Verdana, Geneva, sans-serif;
-}
-
-.ql-font-courier-new {
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.ql-font-times-new-roman {
-  font-family: 'Times New Roman', Times, serif;
-}
-
-.ql-font-trebuchet-ms {
-  font-family: 'Trebuchet MS', Helvetica, sans-serif;
-}
-
-.ql-font-comic-sans {
-  font-family: 'Comic Sans MS', cursive, sans-serif;
-}
-
-.ql-font-lucida-console {
-  font-family: 'Lucida Console', Monaco, monospace;
-}
-
-/* ---- Quill Editor: custom size labels in toolbar dropdown ---- */
-.ql-snow .ql-picker.ql-size .ql-picker-label::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item::before {
-  content: '16px';
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="10px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="10px"]::before {
-  content: '10px';
-  font-size: 10px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before {
-  content: '12px';
-  font-size: 12px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before {
-  content: '14px';
-  font-size: 14px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before {
-  content: '18px';
-  font-size: 18px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="20px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="20px"]::before {
-  content: '20px';
-  font-size: 20px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24px"]::before {
-  content: '24px';
-  font-size: 24px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="28px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="28px"]::before {
-  content: '28px';
-  font-size: 28px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="32px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="32px"]::before {
-  content: '32px';
-  font-size: 32px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="36px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="36px"]::before {
-  content: '36px';
-  font-size: 36px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="48px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="48px"]::before {
-  content: '48px';
-  font-size: 48px;
-}
-
-.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="64px"]::before,
-.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="64px"]::before {
-  content: '64px';
-  font-size: 64px;
-}
-
-/* Render custom pixel sizes in editor + frontend */
-.ql-size-10px {
-  font-size: 10px;
-}
-
-.ql-size-12px {
-  font-size: 12px;
-}
-
-.ql-size-14px {
-  font-size: 14px;
-}
-
-.ql-size-18px {
-  font-size: 18px;
-}
-
-.ql-size-20px {
-  font-size: 20px;
-}
-
-.ql-size-24px {
-  font-size: 24px;
-}
-
-.ql-size-28px {
-  font-size: 28px;
-}
-
-.ql-size-32px {
-  font-size: 32px;
-}
-
-.ql-size-36px {
-  font-size: 36px;
-}
-
-.ql-size-48px {
-  font-size: 48px;
-}
-
-.ql-size-64px {
-  font-size: 64px;
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -942,14 +637,67 @@
   padding-left: 15em;
 }
 
-/* ---- Images ---- */
+/* ---- Images ----
+   WYSIWYG: render images exactly as arranged in the editor — respect the
+   width/size set there (inline images sit side-by-side, resized images keep
+   their size), only capping at the container width. */
 .prose-details img {
-  border-radius: 0.5rem;
-  margin: 1.25rem auto;
   max-width: 100%;
-  display: block;
-  border: none;
+  height: auto;
+  border-radius: 0.375rem;
+  vertical-align: top;
+  margin: 0 0.4rem 0.5rem 0;
 }
+
+/* ---- Image caption (figure / figcaption) ----
+   `display: table` makes the figure shrink to the image's width and stay where
+   the image is (left by default) instead of stretching full-width & centering.
+   The caption (table-caption / caption-side:bottom) renders directly below the
+   image at the same width. Horizontal position follows the figure's text-align
+   (set when the caption is created or via the editor's align buttons). */
+.prose-details figure {
+  display: table;
+  margin: 1.5rem 0;
+  max-width: 100%;
+}
+.prose-details figure[style*="text-align: center"],
+.prose-details figure[style*="text-align:center"] { margin-left: auto; margin-right: auto; }
+.prose-details figure[style*="text-align: right"],
+.prose-details figure[style*="text-align:right"] { margin-left: auto; margin-right: 0; }
+.prose-details figure[style*="text-align: left"],
+.prose-details figure[style*="text-align:left"] { margin-left: 0; margin-right: auto; }
+
+.prose-details figure img {
+  display: block;
+  float: none !important;
+  margin: 0 !important;
+  max-width: 100%;
+  height: auto;
+}
+
+.prose-details figcaption {
+  display: table-caption;
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding-top: 0.5rem;
+}
+
+/* ---- Movable text box: a standalone block the author can place anywhere ---- */
+.prose-details .jodit-text-box {
+  display: inline-block;
+  min-width: 140px;
+  max-width: 100%;
+  margin: 0.75rem 0;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.65rem;
+  background: rgba(148, 163, 184, 0.06);
+  vertical-align: top;
+}
+.prose-details .jodit-text-box > * { margin: 0; }
 
 /* Ensure consecutive image-only paragraphs have visible separation.
    Quill wraps each image in its own <p>, so we target p > img:only-child
@@ -970,6 +718,14 @@
   float: right;
   margin: 0.5rem 0 0.75rem 1.25rem;
   max-width: 50%;
+}
+
+/* ---- Editor (Jodit): images flow inline so two can sit side-by-side on the
+   same line (resize them small enough and they pair up). ---- */
+.jodit-wysiwyg img {
+  display: inline-block;
+  vertical-align: top;
+  margin: 2px 4px 2px 0;
 }
 
 /* ---- Mobile responsiveness for Quill font sizes ---- */
@@ -1053,24 +809,6 @@
   background: #0d1117;
 }
 
-/* ---- Video in Quill editor ---- */
-.ql-editor .ql-video {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  display: block;
-  margin: 1rem 0;
-  border-radius: 0.625rem;
-  border: 1px solid rgba(107, 114, 128, 0.3);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  background: #0d1117;
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.ql-editor .ql-video:hover {
-  border-color: rgba(107, 114, 128, 0.6);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
 /* ---- Horizontal rules ---- */
 .prose-details hr {
   border: none;
@@ -1078,11 +816,236 @@
   margin: 2rem 0;
 }
 
+/* ---- Tables (from the editor) ---- */
+.prose-details table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  table-layout: auto;
+}
+
+.prose-details th,
+.prose-details td {
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+  color: #cbd5e1;
+  word-break: break-word;
+}
+
+.prose-details th {
+  background: rgba(30, 41, 59, 0.65);
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.prose-details tbody tr:nth-child(even) td {
+  background: rgba(30, 41, 59, 0.25);
+}
+
+/* ---- Image grid (multiple images shown side-by-side) ---- */
+.prose-details .image-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  clear: both;
+}
+
+.prose-details .image-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.prose-details .image-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.prose-details .image-grid img {
+  width: 100% !important;
+  height: auto !important;
+  max-width: none !important;
+  margin: 0;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .prose-details .image-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 430px) {
+  .prose-details .image-grid-2,
+  .prose-details .image-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- Clearfix for floated images ---- */
 .prose-details::after {
   content: '';
   display: table;
   clear: both;
+}
+
+/* ============================================
+   JODIT EDITOR (admin) — fixes for Tailwind reset & layout
+   ============================================ */
+
+/* Editor surface — match the admin dark theme (slate) instead of Jodit's grey */
+.jodit-container,
+.jodit-container:not(.jodit_inline) {
+  border-color: #334155 !important;
+  background-color: #0f172a !important;
+}
+
+.jodit-container .jodit-workplace,
+.jodit-wysiwyg,
+.jodit-wysiwyg_mode_WYSIWYG {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.jodit-toolbar__box:not(:empty):not(:empty) {
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+.jodit-status-bar {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+  border-top: 1px solid #334155 !important;
+}
+
+/* Make links visible in the editor (blue + underline) so you can see where they are */
+.jodit-wysiwyg a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+/* Popups & dialogs (e.g. the Insert Link form) — readable inputs/labels on dark theme */
+.jodit-popup,
+.jodit-dialog__panel {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #334155 !important;
+}
+
+.jodit-popup input:not([type="checkbox"]):not([type="radio"]),
+.jodit-popup textarea,
+.jodit-dialog input:not([type="checkbox"]):not([type="radio"]),
+.jodit-dialog textarea,
+.jodit-ui-input__input,
+.jodit-ui-block input:not([type="checkbox"]):not([type="radio"]) {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #475569 !important;
+}
+
+.jodit-popup input::placeholder,
+.jodit-dialog input::placeholder,
+.jodit-ui-input__input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Popup labels / text */
+.jodit-popup label,
+.jodit-popup .jodit-ui-input__label,
+.jodit-dialog label {
+  color: #cbd5e1 !important;
+}
+
+/* Restore list markers inside the editor. Tailwind's preflight strips ul/ol
+   styling, which made the bullet/number list buttons look like they did nothing. */
+.jodit-wysiwyg ul,
+.jodit-wysiwyg ol {
+  padding-left: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.jodit-wysiwyg ul {
+  list-style: disc;
+}
+
+.jodit-wysiwyg ol {
+  list-style: decimal;
+}
+
+.jodit-wysiwyg li {
+  margin-bottom: 0.25rem;
+}
+
+/* Image caption inside the editor — `display: table` keeps the figure at the
+   image's width and position (the caption sits directly below the image at the
+   same width) instead of stretching full-width and force-centering the image.
+   Horizontal placement follows the figure's own text-align. */
+.jodit-wysiwyg figure {
+  margin: 1rem 0;
+  display: table;
+  max-width: 100%;
+}
+.jodit-wysiwyg figure[style*="text-align: center"],
+.jodit-wysiwyg figure[style*="text-align:center"] { margin-left: auto; margin-right: auto; }
+.jodit-wysiwyg figure[style*="text-align: right"],
+.jodit-wysiwyg figure[style*="text-align:right"] { margin-left: auto; margin-right: 0; }
+.jodit-wysiwyg figure[style*="text-align: left"],
+.jodit-wysiwyg figure[style*="text-align:left"] { margin-left: 0; margin-right: auto; }
+
+.jodit-wysiwyg figure img {
+  display: block;
+  float: none !important;
+  margin: 0 !important;
+  max-width: 100%;
+  height: auto;
+}
+
+.jodit-wysiwyg figcaption {
+  display: table-caption;
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding-top: 0.5rem;
+  outline: none;
+  min-height: 1.2em;
+}
+
+/* Movable text box inside the editor — dashed outline hints that it can be
+   dragged; a plain click still places the caret so the text stays editable. */
+.jodit-wysiwyg .jodit-text-box {
+  display: inline-block;
+  min-width: 140px;
+  max-width: 100%;
+  margin: 0.75rem 0;
+  padding: 0.85rem 1.1rem;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  border-radius: 0.65rem;
+  background: rgba(148, 163, 184, 0.06);
+  outline: none;
+  vertical-align: top;
+}
+.jodit-wysiwyg .jodit-text-box:hover { border-color: rgba(96, 165, 250, 0.65); }
+.jodit-wysiwyg .jodit-text-box > div { margin: 0; outline: none; min-height: 1.2em; }
+.jodit-wysiwyg .jodit-text-box > div:empty::before {
+  content: 'Type your text…';
+  color: #64748b;
+}
+
+/* Fullscreen fix: the card's CSS containment makes Jodit's position:fixed
+   fullscreen render relative to the card (so the editor appears to vanish).
+   Remove containment for the card that holds the editor. */
+.card:has(.jodit-container) {
+  contain: none;
+}
+
+/* Ensure fullscreen sits above the admin sidebar/header */
+.jodit-container.jodit_fullsize-box_true,
+.jodit-container.jodit-fullsize,
+.jodit_fullsize {
+  z-index: 100050 !important;
 }
 
 /* Animations */
@@ -1148,3 +1111,11 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Rich text inside canvas text boxes (lists/links survive Tailwind's preflight) */
+.canvas-rt ul { list-style: disc; padding-left: 1.3em; margin: 0.15em 0; }
+.canvas-rt ol { list-style: decimal; padding-left: 1.4em; margin: 0.15em 0; }
+.canvas-rt li { margin: 0.05em 0; }
+.canvas-rt a { color: #2563eb; text-decoration: underline; }
+.canvas-rt p { margin: 0; }
+.canvas-rt b, .canvas-rt strong { font-weight: 700; }

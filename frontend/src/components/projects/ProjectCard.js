@@ -4,35 +4,7 @@ import {
     FiGithub, FiArrowRight, FiExternalLink, FiPaperclip,
     FiGlobe, FiSmartphone, FiMonitor, FiCpu, FiFolder, FiStar
 } from 'react-icons/fi';
-
-const techMatch = (t, terms) => terms.some(term =>
-    term.length <= 2 ? t === term : (term.length === 3 ? (t === term || t.startsWith(term)) : t.includes(term))
-);
-
-const categorizeTech = (tech) => {
-    const t = tech.toLowerCase().trim();
-    if (techMatch(t, ['react', 'vue', 'vue.js', 'angular', 'svelte', 'next', 'nuxt', 'html', 'tailwind', 'bootstrap', 'typescript', 'javascript', 'jquery', 'redux', 'zustand', 'vite', 'webpack', 'gatsby', 'remix', 'sass', 'scss', 'css', 'material', 'chakra', 'framer', 'styled'])) return 'Frontend';
-    if (techMatch(t, ['node', 'express', 'django', 'flask', 'fastapi', 'spring', 'laravel', 'rails', 'nestjs', 'nest.js', 'graphql', 'socket.io', 'python', 'java', 'golang', 'rust', 'kotlin', 'scala', '.net', 'php', 'c++', 'c#', 'go', 'ruby', 'elixir', 'hapi', 'koa', 'strapi'])) return 'Backend';
-    if (techMatch(t, ['mongo', 'postgres', 'mysql', 'sqlite', 'redis', 'firebase', 'supabase', 'prisma', 'sequelize', 'dynamo', 'elastic', 'cassandra', 'neo4j', 'mariadb', 'mongoose'])) return 'Database';
-    if (techMatch(t, ['docker', 'kubernetes', 'heroku', 'vercel', 'netlify', 'nginx', 'jenkins', 'terraform', 'linux', 'render', 'cloudflare', 'postman', 'figma', 'jira', 'github', 'gitlab', 'aws', 'gcp', 'azure', 'railway', 'ci/cd'])) return 'DevOps';
-    return 'Tools';
-};
-
-const groupDot = {
-    Frontend: 'bg-blue-400',
-    Backend: 'bg-emerald-400',
-    Database: 'bg-violet-400',
-    DevOps: 'bg-amber-400',
-    Tools: 'bg-gray-400',
-};
-
-const groupLabel = {
-    Frontend: 'text-blue-400/70',
-    Backend: 'text-emerald-400/70',
-    Database: 'text-violet-400/70',
-    DevOps: 'text-amber-400/70',
-    Tools: 'text-gray-500',
-};
+import { groupTechStack, getTechCategory } from '../../config/techCategories';
 
 const categoryMeta = {
     web: { label: 'Web', Icon: FiGlobe, cls: 'text-sky-400' },
@@ -42,7 +14,6 @@ const categoryMeta = {
     other: { label: 'Project', Icon: FiFolder, cls: 'text-gray-400' },
 };
 
-const CATEGORY_ORDER = ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'];
 const MAX_CHIPS = 8;
 
 const ProjectCard = ({ project }) => {
@@ -55,29 +26,19 @@ const ProjectCard = ({ project }) => {
     const cat = categoryMeta[category] || categoryMeta.other;
     const CatIcon = cat.Icon;
 
-    // Normalize tech: split comma-joined names, group by category, cap to keep cards tidy
+    // Group tech by resolved category (splits comma-joined names, auto-detects
+    // Graphics/Hardware/etc.), then cap the number of chips to keep cards tidy.
     const { groups, hidden } = useMemo(() => {
-        if (!techStack || techStack.length === 0) return { groups: [], hidden: 0 };
-        const map = {};
-        techStack.forEach(tech => {
-            const rawName = typeof tech === 'string' ? tech : tech?.name;
-            const baseCat = (tech && typeof tech === 'object' && tech.category) ? tech.category : null;
-            if (!rawName) return;
-            String(rawName).split(',').map(s => s.trim()).filter(Boolean).forEach(name => {
-                const c = baseCat || categorizeTech(name);
-                (map[c] = map[c] || []).push(name);
-            });
-        });
-        const ordered = CATEGORY_ORDER.filter(o => map[o]?.length).map(o => [o, map[o]]);
+        const all = groupTechStack(techStack);
         let budget = MAX_CHIPS;
         const capped = [];
-        for (const [g, list] of ordered) {
+        for (const [g, list] of all) {
             if (budget <= 0) break;
             const vis = list.slice(0, budget);
             budget -= vis.length;
             capped.push([g, vis]);
         }
-        const total = ordered.reduce((s, [, l]) => s + l.length, 0);
+        const total = all.reduce((s, [, l]) => s + l.length, 0);
         const shown = capped.reduce((s, [, l]) => s + l.length, 0);
         return { groups: capped, hidden: total - shown };
     }, [techStack]);
@@ -127,27 +88,28 @@ const ProjectCard = ({ project }) => {
                 {/* Tech stack — grouped, comma-split, capped */}
                 {groups.length > 0 && (
                     <div className="mb-5 space-y-2.5">
-                        {groups.map(([group, techs]) => (
-                            <div key={group} className="flex items-start gap-2">
-                                <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${groupDot[group]}`} />
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${groupLabel[group]} w-16`}>
-                                        {group}
-                                    </span>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {techs.map((tech, i) => (
-                                        <span key={i} className="text-[11px] text-gray-300 bg-dark-200/80 border border-gray-700/40 px-2 py-0.5 rounded">
-                                            {tech}
+                        {groups.map(([group, techs]) => {
+                            const meta = getTechCategory(group);
+                            return (
+                                <div key={group} className="flex items-start gap-2">
+                                    <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+                                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${meta.text}`}>
+                                            {meta.label}
                                         </span>
-                                    ))}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {techs.map((tech, i) => (
+                                            <span key={i} className="text-[11px] text-gray-300 bg-dark-200/80 border border-gray-700/40 px-2 py-0.5 rounded">
+                                                {tech}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {hidden > 0 && (
-                            <div className="pl-[4.5rem]">
-                                <span className="text-[11px] text-gray-500">+{hidden} more</span>
-                            </div>
+                            <span className="text-[11px] text-gray-500">+{hidden} more</span>
                         )}
                     </div>
                 )}

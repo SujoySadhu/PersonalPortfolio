@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
 import {
-    FiSave, FiArrowLeft, FiX, FiPlus, FiChevronDown, FiInfo, FiFileText,
-    FiLink, FiLayers, FiPaperclip, FiUploadCloud, FiTrash2, FiExternalLink,
-    FiGithub, FiYoutube, FiGlobe, FiStar
+    FiSave, FiArrowLeft, FiX, FiPlus, FiChevronDown, FiInfo,
+    FiLink, FiLayers, FiPaperclip, FiTrash2, FiExternalLink,
+    FiGithub, FiYoutube, FiGlobe, FiStar, FiLayout
 } from 'react-icons/fi';
-import { projectsAPI, categoriesAPI, BACKEND_URL } from '../../services/api';
+import { projectsAPI, categoriesAPI } from '../../services/api';
 import Loading from '../../components/common/Loading';
-import { quillFormats, quillToolbar, attachImageDeleteHandler } from '../../config/quillConfig';
+import CanvasEditor from '../../components/common/CanvasEditor';
+import { emptyCanvas, normalizeCanvas } from '../../config/canvasHelpers';
 import {
-    ALLOWED_DOC_TYPES, MAX_DOC_BYTES, getFileMeta, formatBytes, FileTypeIcon
+    DOC_TYPE_OPTIONS, guessDocType, getFileMeta, FileTypeIcon
 } from '../../config/fileHelpers';
+import { TECH_CATEGORIES, TECH_CATEGORY_ORDER, getTechCategory } from '../../config/techCategories';
 
 const defaultCategories = [
     { value: 'web', label: '🌐 Web Development' },
@@ -22,16 +22,6 @@ const defaultCategories = [
     { value: 'ai-ml', label: '🤖 AI/ML' },
     { value: 'other', label: '📁 Other' }
 ];
-
-const techCategories = [
-    { value: 'Frontend', label: 'Frontend', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    { value: 'Backend', label: 'Backend', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-    { value: 'Database', label: 'Database', color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
-    { value: 'DevOps', label: 'DevOps', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-    { value: 'Tools', label: 'Tools', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
-];
-
-const ACCEPT_ATTR = ALLOWED_DOC_TYPES.map(t => `.${t}`).join(',');
 
 // Reusable section wrapper — icon chip + title + optional subtitle
 const Section = ({ icon: Icon, title, subtitle, tint = 'text-primary-400 bg-primary-500/10', children, right }) => (
@@ -56,71 +46,10 @@ const ProjectForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEdit = Boolean(id);
-    const quillRef = useRef(null);
 
     const [loading, setLoading] = useState(isEdit);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState(defaultCategories);
-
-    // Custom image handler: uploads to server, supports multi-select
-    const imageHandler = useCallback(() => {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.setAttribute('multiple', 'true');
-        input.click();
-        input.onchange = async () => {
-            const files = Array.from(input.files);
-            if (!files.length) return;
-            const token = localStorage.getItem('token');
-            const uploadedUrls = [];
-
-            for (const file of files) {
-                const data = new FormData();
-                data.append('image', file);
-                try {
-                    const res = await fetch(`${BACKEND_URL}/api/upload/editor-image`, {
-                        method: 'POST',
-                        headers: { Authorization: `Bearer ${token}` },
-                        body: data,
-                    });
-                    if (!res.ok) {
-                        console.error('Upload failed:', res.status);
-                        continue;
-                    }
-                    const json = await res.json();
-                    if (json.success && json.url) {
-                        const imageUrl = json.url.startsWith('http') ? json.url : `${BACKEND_URL}${json.url}`;
-                        uploadedUrls.push(imageUrl);
-                    }
-                } catch (err) {
-                    console.error('Editor image upload error:', err);
-                }
-            }
-
-            if (uploadedUrls.length === 0) {
-                toast.error('Image upload failed');
-                return;
-            }
-
-            const editor = quillRef.current?.getEditor?.() || quillRef.current?.editor;
-            if (!editor) return;
-
-            let insertAt = (editor.getSelection(true) || { index: editor.getLength() - 1 }).index;
-            for (const url of uploadedUrls) {
-                editor.insertEmbed(insertAt, 'image', url);
-                insertAt += 1;
-            }
-            editor.setSelection(insertAt);
-        };
-    }, []);
-
-    const quillModules = useMemo(() => ({
-        toolbar: {
-            container: quillToolbar,
-            handlers: { image: imageHandler }
-        }
-    }), [imageHandler]);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -131,6 +60,7 @@ const ProjectForm = () => {
         githubLink: '',
         techStack: [],
         attachments: [],
+        canvas: emptyCanvas(),
         category: 'web',
         status: 'completed',
         featured: false,
@@ -138,11 +68,11 @@ const ProjectForm = () => {
     });
     const [techInput, setTechInput] = useState('');
     const [techCategory, setTechCategory] = useState('Frontend');
+    const [customCategory, setCustomCategory] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
 
-    // Attachment upload state
-    const [uploadingDocs, setUploadingDocs] = useState([]); // [{ id, name, progress }]
-    const [dragActive, setDragActive] = useState(false);
+    // Draft for adding a document by shareable link
+    const [docDraft, setDocDraft] = useState({ name: '', url: '', format: 'link' });
 
     useEffect(() => {
         fetchCategories();
@@ -176,6 +106,7 @@ const ProjectForm = () => {
                 githubLink: project.githubLink || '',
                 techStack: project.techStack || [],
                 attachments: project.attachments || [],
+                canvas: normalizeCanvas(project.canvas),
                 category: project.category || 'web',
                 status: project.status || 'completed',
                 featured: project.featured || false,
@@ -196,17 +127,6 @@ const ProjectForm = () => {
         }
     }, [isEdit, fetchProject]);
 
-    // Attach image delete handler to Quill editor
-    useEffect(() => {
-        let cleanup = () => { };
-        const timer = setTimeout(() => {
-            cleanup = attachImageDeleteHandler(quillRef) || (() => { });
-        }, 500);
-        return () => {
-            clearTimeout(timer);
-            cleanup();
-        };
-    }, [loading]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -227,10 +147,13 @@ const ProjectForm = () => {
 
     const handleAddTech = () => {
         const name = techInput.trim();
+        const effectiveCategory = techCategory === '__custom__'
+            ? (customCategory.trim() || 'Other')
+            : techCategory;
         if (name && !formData.techStack.some(t => (t.name || t) === name)) {
             setFormData(prev => ({
                 ...prev,
-                techStack: [...normalizeTechStack(prev.techStack), { name, category: techCategory }]
+                techStack: [...normalizeTechStack(prev.techStack), { name, category: effectiveCategory }]
             }));
             setTechInput('');
         }
@@ -243,58 +166,38 @@ const ProjectForm = () => {
         }));
     };
 
-    // ----- Attachments (documents) -----
-    const handleFiles = useCallback(async (fileList) => {
-        const files = Array.from(fileList || []);
-        for (const file of files) {
-            const ext = (file.name.split('.').pop() || '').toLowerCase();
-            if (!ALLOWED_DOC_TYPES.includes(ext)) {
-                toast.error(`"${file.name}" — unsupported type (.${ext})`);
-                continue;
-            }
-            if (file.size > MAX_DOC_BYTES) {
-                toast.error(`"${file.name}" exceeds the 25MB limit`);
-                continue;
-            }
-
-            const tempId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            setUploadingDocs(prev => [...prev, { id: tempId, name: file.name, progress: 0 }]);
-
-            try {
-                const fd = new FormData();
-                fd.append('file', file);
-                const res = await projectsAPI.uploadDocument(fd, (evt) => {
-                    const pct = evt.total ? Math.round((evt.loaded / evt.total) * 100) : 0;
-                    setUploadingDocs(prev => prev.map(d => d.id === tempId ? { ...d, progress: pct } : d));
-                });
-                const data = res.data || {};
-                if (!data.url) throw new Error('No URL returned');
-
-                const newAtt = {
-                    name: file.name.replace(/\.[^.]+$/, ''),
-                    url: data.url,
-                    format: (data.format || ext).toLowerCase(),
-                    bytes: data.bytes || file.size,
-                    uploadedAt: new Date().toISOString()
-                };
-                setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), newAtt] }));
-                toast.success(`Uploaded "${file.name}"`);
-            } catch (err) {
-                console.error('Document upload error:', err);
-                toast.error(err.response?.data?.message || `Failed to upload "${file.name}"`);
-            } finally {
-                setUploadingDocs(prev => prev.filter(d => d.id !== tempId));
-            }
+    // ----- Attachments (documents via shareable links) -----
+    const addAttachmentLink = () => {
+        const name = (docDraft.name || '').trim();
+        let url = (docDraft.url || '').trim();
+        if (!url) {
+            toast.error('Paste a shareable link first');
+            return;
         }
-    }, []);
+        if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+        try {
+            // eslint-disable-next-line no-new
+            new URL(url);
+        } catch (e) {
+            toast.error('That doesn’t look like a valid link');
+            return;
+        }
+        // Respect a manually-chosen type; otherwise infer from the URL
+        const format = docDraft.format && docDraft.format !== 'link'
+            ? docDraft.format
+            : guessDocType(url);
 
-    const onDrop = (e) => {
-        e.preventDefault();
-        setDragActive(false);
-        if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
+        const newAtt = {
+            name: name || 'Document',
+            url,
+            format,
+            bytes: 0,
+            uploadedAt: new Date().toISOString()
+        };
+        setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), newAtt] }));
+        setDocDraft({ name: '', url: '', format: 'link' });
+        toast.success('Resource added');
     };
-    const onDragOver = (e) => { e.preventDefault(); setDragActive(true); };
-    const onDragLeave = (e) => { e.preventDefault(); setDragActive(false); };
 
     const renameAttachment = (idx, name) => {
         setFormData(prev => ({
@@ -318,10 +221,6 @@ const ProjectForm = () => {
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
             toast.error('Please fix the highlighted fields');
-            return;
-        }
-        if (uploadingDocs.length > 0) {
-            toast.error('Please wait for uploads to finish');
             return;
         }
 
@@ -373,15 +272,22 @@ const ProjectForm = () => {
 
     const normalizedStack = normalizeTechStack(formData.techStack);
     const techGroups = {};
-    normalizedStack.forEach(item => { (techGroups[item.category] = techGroups[item.category] || []).push(item); });
-    const categoryOrder = ['Frontend', 'Backend', 'Database', 'DevOps', 'Tools'];
+    normalizedStack.forEach(item => {
+        const c = item.category || 'Other';
+        (techGroups[c] = techGroups[c] || []).push(item);
+    });
+    // Preset categories first (in order), then any custom ones the user typed
+    const categoryOrder = [
+        ...TECH_CATEGORY_ORDER.filter(c => techGroups[c]?.length),
+        ...Object.keys(techGroups).filter(c => !TECH_CATEGORY_ORDER.includes(c)).sort()
+    ];
     const attachments = formData.attachments || [];
 
     return (
         <form onSubmit={handleSubmit} className="min-h-screen pb-16">
             {/* Sticky action bar */}
             <div className="sticky top-16 lg:top-0 z-20 bg-dark-200/85 backdrop-blur-md border-b border-gray-800/60">
-                <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+                <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
                     <button
                         type="button"
                         onClick={() => navigate('/admin/projects')}
@@ -424,7 +330,7 @@ const ProjectForm = () => {
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 pt-6 space-y-5">
+            <div className="max-w-6xl mx-auto px-4 pt-6 space-y-5">
                 {/* Project details */}
                 <Section icon={FiInfo} title="Project details" subtitle="The essentials shown on cards and the project page">
                     <div className="space-y-4">
@@ -444,16 +350,16 @@ const ProjectForm = () => {
                         <div>
                             <div className="flex items-center justify-between">
                                 <label className="label">Short Description</label>
-                                <span className="text-xs text-gray-600">{formData.shortDescription.length}/200</span>
+                                <span className="text-xs text-gray-600">{formData.shortDescription.length}/500</span>
                             </div>
-                            <input
-                                type="text"
+                            <textarea
                                 name="shortDescription"
                                 value={formData.shortDescription}
                                 onChange={handleChange}
-                                className="input-field"
-                                placeholder="A concise one-liner used on project cards"
-                                maxLength={200}
+                                className="input-field resize-y min-h-[80px]"
+                                rows={3}
+                                placeholder="A short summary shown on cards and as the intro on the project page"
+                                maxLength={500}
                             />
                         </div>
 
@@ -515,16 +421,11 @@ const ProjectForm = () => {
                     </div>
                 </Section>
 
-                {/* Overview / rich text */}
-                <Section icon={FiFileText} title="Overview" subtitle="Tell the full story — add images, headings, and formatting" tint="text-sky-400 bg-sky-500/10">
-                    <ReactQuill
-                        ref={quillRef}
-                        theme="snow"
-                        value={formData.description}
-                        onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
-                        modules={quillModules}
-                        formats={quillFormats}
-                        placeholder="Write a detailed description — the problem, your approach, key features, and results…"
+                {/* Project description — a free canvas of images + formatted text boxes */}
+                <Section icon={FiLayout} title="Project Description" subtitle="Compose your project page — add images and text boxes anywhere, format the text, and drag to arrange" tint="text-amber-400 bg-amber-500/10">
+                    <CanvasEditor
+                        value={formData.canvas}
+                        onChange={(canvas) => setFormData(prev => ({ ...prev, canvas }))}
                     />
                 </Section>
 
@@ -565,19 +466,31 @@ const ProjectForm = () => {
                             className="input-field flex-1"
                             placeholder="Add technology (e.g., React, Node.js)"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <div className="relative flex-1 sm:flex-initial">
                                 <select
                                     value={techCategory}
                                     onChange={(e) => setTechCategory(e.target.value)}
-                                    className="input-field appearance-none pr-8 sm:min-w-[140px] text-sm w-full"
+                                    className="input-field appearance-none pr-8 sm:min-w-[150px] text-sm w-full"
                                 >
-                                    {techCategories.map(cat => (
+                                    {TECH_CATEGORIES.map(cat => (
                                         <option key={cat.value} value={cat.value}>{cat.label}</option>
                                     ))}
+                                    <option value="__custom__">+ Custom…</option>
                                 </select>
                                 <FiChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
                             </div>
+                            {techCategory === '__custom__' && (
+                                <input
+                                    type="text"
+                                    value={customCategory}
+                                    onChange={(e) => setCustomCategory(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTech(); } }}
+                                    className="input-field text-sm w-full sm:w-36"
+                                    placeholder="Category name"
+                                    autoFocus
+                                />
+                            )}
                             <button type="button" onClick={handleAddTech} className="btn-secondary flex items-center gap-2 whitespace-nowrap">
                                 <FiPlus /> Add
                             </button>
@@ -590,15 +503,15 @@ const ProjectForm = () => {
                         categoryOrder.map(cat => {
                             const items = techGroups[cat];
                             if (!items || items.length === 0) return null;
-                            const catInfo = techCategories.find(c => c.value === cat);
+                            const meta = getTechCategory(cat);
                             return (
                                 <div key={cat} className="mb-3">
-                                    <span className={`inline-block text-xs font-semibold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded border ${catInfo?.color || 'text-gray-400'}`}>
-                                        {cat}
+                                    <span className={`inline-block text-xs font-semibold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded border ${meta.chip}`}>
+                                        {meta.label}
                                     </span>
                                     <div className="flex flex-wrap gap-2">
                                         {items.map((tech, index) => (
-                                            <span key={index} className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 border ${catInfo?.color || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+                                            <span key={index} className={`px-3 py-1 rounded-full text-sm flex items-center gap-2 border ${meta.chip}`}>
                                                 {tech.name}
                                                 <button type="button" onClick={() => handleRemoveTech(tech)} className="hover:text-red-400 transition-colors">
                                                     <FiX size={14} />
@@ -616,69 +529,71 @@ const ProjectForm = () => {
                 <Section
                     icon={FiPaperclip}
                     title="Documents & Resources"
-                    subtitle="Reports, slide decks and files — shown for viewing & download on the project page"
+                    subtitle="Add reports, slide decks and files by pasting a shareable link (Google Drive, Dropbox, OneDrive…)"
                     tint="text-amber-400 bg-amber-500/10"
                     right={attachments.length > 0 && (
                         <span className="text-xs font-medium text-gray-500 bg-dark-200 border border-gray-800 rounded-full px-2.5 py-1 shrink-0">
-                            {attachments.length} file{attachments.length > 1 ? 's' : ''}
+                            {attachments.length} item{attachments.length > 1 ? 's' : ''}
                         </span>
                     )}
                 >
-                    {/* Drop zone */}
-                    <label
-                        onDragOver={onDragOver}
-                        onDragLeave={onDragLeave}
-                        onDrop={onDrop}
-                        className={`flex flex-col items-center justify-center gap-2 px-6 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${dragActive
-                            ? 'border-primary-500 bg-primary-500/5'
-                            : 'border-gray-700 hover:border-gray-600 bg-dark-200/40'}`}
-                    >
-                        <input
-                            type="file"
-                            multiple
-                            accept={ACCEPT_ATTR}
-                            className="hidden"
-                            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
-                        />
-                        <div className="w-11 h-11 rounded-full bg-dark-100 border border-gray-700 flex items-center justify-center">
-                            <FiUploadCloud className="text-gray-400" size={20} />
+                    {/* Add a resource by shareable link */}
+                    <div className="rounded-xl border border-gray-800 bg-dark-200/40 p-4 space-y-3">
+                        <div className="grid sm:grid-cols-[1fr_12rem] gap-3">
+                            <input
+                                type="text"
+                                value={docDraft.name}
+                                onChange={(e) => setDocDraft(d => ({ ...d, name: e.target.value }))}
+                                placeholder="Name (e.g. Final Report, Slide Deck)"
+                                className="input-field"
+                            />
+                            <div className="relative">
+                                <select
+                                    value={docDraft.format}
+                                    onChange={(e) => setDocDraft(d => ({ ...d, format: e.target.value }))}
+                                    className="input-field appearance-none pr-9"
+                                >
+                                    {DOC_TYPE_OPTIONS.map(o => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-300">
-                            <span className="text-primary-400 font-medium">Click to upload</span> or drag &amp; drop
-                        </p>
-                        <p className="text-xs text-gray-600 text-center">
-                            PDF, PPT, DOC, XLS, CSV, TXT, ZIP · up to 25MB each
-                        </p>
-                    </label>
-
-                    {/* In-progress uploads */}
-                    {uploadingDocs.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                            {uploadingDocs.map(d => (
-                                <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl bg-dark-200/60 border border-gray-800">
-                                    <div className="w-9 h-9 rounded-lg bg-dark-100 border border-gray-800 flex items-center justify-center shrink-0">
-                                        <div className="w-4 h-4 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-gray-300 truncate">{d.name}</p>
-                                        <div className="mt-1.5 h-1.5 rounded-full bg-gray-800 overflow-hidden">
-                                            <div className="h-full bg-primary-500 transition-all duration-200" style={{ width: `${d.progress}%` }} />
-                                        </div>
-                                    </div>
-                                    <span className="text-xs text-gray-500 w-9 text-right">{d.progress}%</span>
-                                </div>
-                            ))}
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <FiLink className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={15} />
+                                <input
+                                    type="url"
+                                    value={docDraft.url}
+                                    onChange={(e) => setDocDraft(d => ({ ...d, url: e.target.value }))}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAttachmentLink(); } }}
+                                    placeholder="Paste shareable link…"
+                                    className="input-field pl-9"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={addAttachmentLink}
+                                className="btn-secondary inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                            >
+                                <FiPlus size={16} /> Add
+                            </button>
                         </div>
-                    )}
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                            In Google Drive: right-click the file → <span className="text-gray-400">Share</span> → set access to
+                            <span className="text-gray-400"> “Anyone with the link”</span> → <span className="text-gray-400">Copy link</span>, then paste it above.
+                        </p>
+                    </div>
 
-                    {/* Uploaded files */}
+                    {/* Added resources */}
                     {attachments.length > 0 && (
                         <div className="mt-4 space-y-2">
                             {attachments.map((att, idx) => {
                                 const meta = getFileMeta(att.format);
                                 return (
                                     <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-dark-200/60 border border-gray-800 hover:border-gray-700 transition-colors">
-                                        <div className="w-10 h-10 rounded-lg bg-dark-100 border border-gray-800 flex items-center justify-center shrink-0">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${meta.badge}`}>
                                             <FileTypeIcon format={att.format} size={18} />
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -689,8 +604,17 @@ const ProjectForm = () => {
                                                 placeholder="Document name"
                                             />
                                             <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 px-0.5">
-                                                <span className={`uppercase font-medium ${meta.tint}`}>{att.format}</span>
-                                                {att.bytes > 0 && (<><span>·</span><span>{formatBytes(att.bytes)}</span></>)}
+                                                <span className={`uppercase font-medium ${meta.tint}`}>{meta.label}</span>
+                                                <span>·</span>
+                                                <a
+                                                    href={att.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="truncate hover:text-primary-400 transition-colors"
+                                                    title={att.url}
+                                                >
+                                                    {att.url.replace(/^https?:\/\//, '')}
+                                                </a>
                                             </div>
                                         </div>
                                         <a
@@ -698,7 +622,7 @@ const ProjectForm = () => {
                                             target="_blank"
                                             rel="noreferrer"
                                             className="p-2 text-gray-500 hover:text-white transition-colors"
-                                            title="Open file"
+                                            title="Open link"
                                         >
                                             <FiExternalLink size={16} />
                                         </a>

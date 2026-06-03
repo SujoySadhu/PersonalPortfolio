@@ -191,6 +191,11 @@ export const projectsAPI = {
     uploadDocument: (formData, onUploadProgress) => api.post('/upload/document', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress
+    }),
+    // Upload a single image (used by the visual canvas) → returns { success, url }
+    uploadImage: (formData, onUploadProgress) => api.post('/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress
     })
 };
 

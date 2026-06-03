@@ -21,7 +21,19 @@ const currentWorkRoutes = require('./routes/currentWork');
 const publicRoutes = require('./routes/public');
 const contactRoutes = require('./routes/contact');
 
-connectDB();
+// Connect to the database (auto-retries internally). If it ultimately fails,
+// keep the server running rather than crashing — requests will error cleanly
+// and the driver keeps trying to reconnect in the background.
+connectDB().catch((err) => {
+    console.error('Initial MongoDB connection failed after retries: ' + err.message);
+    console.error('Server is up, but the database is currently unavailable.');
+});
+
+// Safety net: a transient async error (e.g. a DNS/DB hiccup) should never take
+// the whole server down with an unhandled rejection.
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection] ' + (reason && reason.message ? reason.message : reason));
+});
 
 const app = express();
 
@@ -62,13 +74,26 @@ const upload = require('./middleware/upload');
 const { protect } = require('./middleware/auth');
 const { documentUpload } = require('./config/cloudinary');
 
-app.post('/api/upload/editor-image', protect, upload.single('image'), (req, res) => {
+// General-purpose single image upload to Cloudinary (project/canvas/forms)
+app.post('/api/upload/image', protect, upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No image file provided' });
     }
+    res.status(200).json({ success: true, url: req.file.path });
+});
+
+// Accept any field name and MULTIPLE files at once — the editor can upload
+// several images in one go; return all their Cloudinary URLs.
+app.post('/api/upload/editor-image', protect, upload.any(), (req, res) => {
+    const files = (req.files && req.files.length) ? req.files : (req.file ? [req.file] : []);
+    if (!files.length) {
+        return res.status(400).json({ success: false, message: 'No image file provided' });
+    }
+    const urls = files.map((f) => f.path);
     res.status(200).json({
         success: true,
-        url: req.file.path // Full Cloudinary URL provided by multer-storage-cloudinary
+        url: urls[0], // first URL (back-compat)
+        urls          // all uploaded URLs
     });
 });
 

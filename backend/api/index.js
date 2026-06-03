@@ -22,7 +22,14 @@ const currentWorkRoutes = require('../routes/currentWork');
 const publicRoutes = require('../routes/public');
 const contactRoutes = require('../routes/contact');
 
-connectDB();
+connectDB().catch((err) => {
+    console.error('Initial MongoDB connection failed after retries: ' + err.message);
+});
+
+// Safety net so a transient DB/DNS hiccup can't crash the function
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection] ' + (reason && reason.message ? reason.message : reason));
+});
 
 const app = express();
 
@@ -62,15 +69,18 @@ app.post('/api/upload/image', protect, upload.single('image'), (req, res) => {
     });
 });
 
-// Editor image upload endpoint (for Quill rich-text editor)
-// Saves to Cloudinary and returns the URL
-app.post('/api/upload/editor-image', protect, upload.single('image'), (req, res) => {
-    if (!req.file) {
+// Editor image upload endpoint — accepts any field name and MULTIPLE files at
+// once; returns all uploaded Cloudinary URLs.
+app.post('/api/upload/editor-image', protect, upload.any(), (req, res) => {
+    const files = (req.files && req.files.length) ? req.files : (req.file ? [req.file] : []);
+    if (!files.length) {
         return res.status(400).json({ success: false, message: 'No image file provided' });
     }
+    const urls = files.map((f) => f.path);
     res.status(200).json({
         success: true,
-        url: req.file.path // Cloudinary URL
+        url: urls[0], // first URL (back-compat)
+        urls          // all uploaded URLs
     });
 });
 

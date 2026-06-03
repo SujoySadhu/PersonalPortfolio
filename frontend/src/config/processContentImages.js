@@ -19,10 +19,77 @@ export function processContentImages(html) {
         // --- Convert video URL links to iframes ---
         convertVideoLinks(doc);
 
+        // --- Arrange groups of images into a responsive grid ---
+        groupImageGrids(doc);
+
         return doc.body.innerHTML;
     } catch (err) {
         console.error('processContentImages error:', err);
         return html;
+    }
+}
+
+/**
+ * Arrange consecutive images into a responsive grid so multiple images render
+ * side-by-side instead of as a tall stack. Handles both a single block holding
+ * several <img> and a run of consecutive single-image paragraphs. A lone image
+ * is left as-is (so it keeps whatever size it was resized to in the editor).
+ * Columns: 2 images -> side by side, 4 -> 2x2, otherwise 3 across.
+ */
+function colsForCount(n) {
+    if (n <= 1) return 1;
+    if (n === 2 || n === 4) return 2;
+    return 3;
+}
+
+function buildGrid(doc, imgs) {
+    const grid = doc.createElement('div');
+    grid.className = `image-grid image-grid-${colsForCount(imgs.length)}`;
+    imgs.forEach(img => grid.appendChild(img));
+    return grid;
+}
+
+function groupImageGrids(doc) {
+    const body = doc.body;
+    if (!body) return;
+
+    // Case 1: a single block holding multiple images and no meaningful text
+    Array.from(body.querySelectorAll('p, div')).forEach(block => {
+        if (block.classList && block.classList.contains('image-grid')) return;
+        if (block.querySelector('iframe, video, .video-embed-wrapper')) return;
+        const imgs = Array.from(block.querySelectorAll('img'));
+        if (imgs.length < 2) return;
+        if ((block.textContent || '').trim().length > 0) return;
+        const grid = buildGrid(doc, imgs);
+        if (block.parentNode) block.parentNode.replaceChild(grid, block);
+    });
+
+    // Case 2: runs of consecutive single-image-only paragraphs
+    const isImgOnlyP = (el) =>
+        el && el.tagName === 'P' &&
+        el.querySelectorAll('img').length === 1 &&
+        (el.textContent || '').trim().length === 0 &&
+        !el.querySelector('iframe, video');
+
+    let child = body.firstElementChild;
+    while (child) {
+        if (isImgOnlyP(child)) {
+            const run = [child];
+            let next = child.nextElementSibling;
+            while (next && isImgOnlyP(next)) {
+                run.push(next);
+                next = next.nextElementSibling;
+            }
+            if (run.length >= 2) {
+                const imgs = run.map(p => p.querySelector('img'));
+                const grid = buildGrid(doc, imgs);
+                run[0].parentNode.insertBefore(grid, run[0]);
+                run.forEach(p => p.parentNode.removeChild(p));
+                child = grid.nextElementSibling;
+                continue;
+            }
+        }
+        child = child.nextElementSibling;
     }
 }
 
